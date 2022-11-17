@@ -1,0 +1,43 @@
+diff --git a/node_modules/@sentry/replay/dist/index.es.js b/node_modules/@sentry/replay/dist/index.es.js
+index b40f191..7fcba82 100644
+--- a/node_modules/@sentry/replay/dist/index.es.js
++++ b/node_modules/@sentry/replay/dist/index.es.js
+@@ -462,11 +462,13 @@ function fetchSession(_a) {
+     if (!hasSessionStorage) {
+         return null;
+     }
+-    var sessionStringFromStorage = window.sessionStorage.getItem(REPLAY_SESSION_KEY);
+-    if (!sessionStringFromStorage) {
+-        return null;
+-    }
++
+     try {
++        var sessionStringFromStorage = window.sessionStorage.getItem(REPLAY_SESSION_KEY);
++        if (!sessionStringFromStorage) {
++            return null;
++        }
++
+         var sessionObj = JSON.parse(sessionStringFromStorage);
+         return new Session(sessionObj, 
+         // We are assuming that if there is a saved item, then the session is sticky,
+diff --git a/node_modules/@sentry/replay/dist/index.js b/node_modules/@sentry/replay/dist/index.js
+index 1fae8ef..9a35b15 100644
+--- a/node_modules/@sentry/replay/dist/index.js
++++ b/node_modules/@sentry/replay/dist/index.js
+@@ -470,11 +470,12 @@ function fetchSession(_a) {
+     if (!hasSessionStorage) {
+         return null;
+     }
+-    var sessionStringFromStorage = window.sessionStorage.getItem(REPLAY_SESSION_KEY);
+-    if (!sessionStringFromStorage) {
+-        return null;
+-    }
+     try {
++        var sessionStringFromStorage = window.sessionStorage.getItem(REPLAY_SESSION_KEY);
++        if (!sessionStringFromStorage) {
++            return null;
++        }
++
+         var sessionObj = JSON.parse(sessionStringFromStorage);
+         return new Session(sessionObj, 
+         // We are assuming that if there is a saved item, then the session is sticky,

@@ -286,21 +286,30 @@ export const useMockDatastore = (
     );
 
   const getEntityType: EmbedderGraphMessageCallbacks["getEntityType"] =
-    useCallback(
-      async ({ data }) => {
-        if (!data) {
-          return {
-            errors: [
-              {
-                code: "INVALID_INPUT",
-                message: "getEntityType requires 'data' input",
-              },
-            ],
-          };
-        }
-      },
-      [graph],
-    );
+    useCallback(async ({ data }) => {
+      return {
+        errors: [
+          {
+            code: "NOT_IMPLEMENTED",
+            message: `Entity deletion is not currently supported`,
+          },
+        ],
+      };
+
+      /** @todo - interim solution: retrieve entity type from URL */
+      /** @todo - implement entity type resolution */
+      // eslint-disable-next-line no-unreachable -- currently unimplemented
+      if (!data) {
+        return {
+          errors: [
+            {
+              code: "INVALID_INPUT",
+              message: "getEntityType requires 'data' input",
+            },
+          ],
+        };
+      }
+    }, []);
 
   /** @todo - Reimplement linkedAggregations */
   // const createLinkedAggregation: EmbedderGraphMessageCallbacks["createLinkedAggregation"] =
@@ -470,6 +479,17 @@ export const useMockDatastore = (
 
   const uploadFile: EmbedderGraphMessageCallbacks["uploadFile"] = useCallback(
     async ({ data }) => {
+      return {
+        errors: [
+          {
+            code: "NOT_IMPLEMENTED",
+            message: `Uploading files is not currently supported`,
+          },
+        ],
+      };
+
+      /** @todo - create the file entity-type and re-enable file uploading */
+      // eslint-disable-next-line no-unreachable -- currently unimplemented
       if (readonly) {
         return readonlyErrorReturn;
       }
@@ -484,89 +504,89 @@ export const useMockDatastore = (
           ],
         };
       }
-      const { file, url, mediaType } = data;
-      if (!file && !url?.trim()) {
-        throw new Error(
-          `Please enter a valid ${mediaType} URL or select a file below`,
-        );
-      }
-
-      if (url?.trim()) {
-        const resp = await createEntity({
-          data: {
-            entityTypeId: "file1",
-            properties: {
-              url,
-              mediaType,
-            },
-          },
-        });
-        if (resp.errors || !resp.data) {
-          return {
-            errors: resp.errors ?? [
-              {
-                code: "INVALID_INPUT",
-                message: "Could not create File entity ",
-              },
-            ],
-          };
-        }
-        const returnData: UploadFileReturn = {
-          entityId: resp.data.entityId,
-          mediaType,
-          url,
-        };
-        return Promise.resolve({ data: returnData });
-      } else if (file) {
-        const result = await new Promise<FileReader["result"] | null>(
-          (resolve, reject) => {
-            const reader = new FileReader();
-
-            reader.onload = (event) => {
-              resolve(event.target?.result ?? null);
-            };
-
-            reader.onerror = (event) => {
-              reject(event);
-            };
-
-            reader.readAsDataURL(file);
-          },
-        );
-
-        if (result) {
-          const resp = await createEntity({
-            data: {
-              entityTypeId: "file1",
-              properties: {
-                url: result.toString(),
-                mediaType,
-              },
-            },
-          });
-          if (resp.errors || !resp.data) {
-            return {
-              errors: resp.errors ?? [
-                {
-                  code: "INVALID_INPUT",
-                  message: "Could not create File entity ",
-                },
-              ],
-            };
-          }
-          const returnData: UploadFileReturn = {
-            entityId: resp.data.entityId,
-            mediaType,
-            url: result.toString(),
-          };
-          return Promise.resolve({ data: returnData });
-        }
-
-        throw new Error("Couldn't read your file");
-      }
-      throw new Error("Unreachable.");
+      // const { file, url, mediaType } = data;
+      // if (!file && !url?.trim()) {
+      //   throw new Error(
+      //     `Please enter a valid ${mediaType} URL or select a file below`,
+      //   );
+      // }
+      //
+      // if (url?.trim()) {
+      //   const resp = await createEntity({
+      //     data: {
+      //       entityTypeId: "file1",
+      //       properties: {
+      //         url,
+      //         mediaType,
+      //       },
+      //     },
+      //   });
+      //   if (resp.errors || !resp.data) {
+      //     return {
+      //       errors: resp.errors ?? [
+      //         {
+      //           code: "INVALID_INPUT",
+      //           message: "Could not create File entity ",
+      //         },
+      //       ],
+      //     };
+      //   }
+      //   const returnData: UploadFileReturn = {
+      //     entityId: resp.data.entityId,
+      //     mediaType,
+      //     url,
+      //   };
+      //   return Promise.resolve({ data: returnData });
+      // } else if (file) {
+      //   const result = await new Promise<FileReader["result"] | null>(
+      //     (resolve, reject) => {
+      //       const reader = new FileReader();
+      //
+      //       reader.onload = (event) => {
+      //         resolve(event.target?.result ?? null);
+      //       };
+      //
+      //       reader.onerror = (event) => {
+      //         reject(event);
+      //       };
+      //
+      //       reader.readAsDataURL(file);
+      //     },
+      //   );
+      //
+      //   if (result) {
+      //     const resp = await createEntity({
+      //       data: {
+      //         entityTypeId: "file1",
+      //         properties: {
+      //           url: result.toString(),
+      //           mediaType,
+      //         },
+      //       },
+      //     });
+      //     if (resp.errors || !resp.data) {
+      //       return {
+      //         errors: resp.errors ?? [
+      //           {
+      //             code: "INVALID_INPUT",
+      //             message: "Could not create File entity ",
+      //           },
+      //         ],
+      //       };
+      //     }
+      //     const returnData: UploadFileReturn = {
+      //       entityId: resp.data.entityId,
+      //       mediaType,
+      //       url: result.toString(),
+      //     };
+      //     return Promise.resolve({ data: returnData });
+      //   }
+      //
+      //   throw new Error("Couldn't read your file");
+      // }
+      // throw new Error("Unreachable.");
     },
-    [createEntity, readonly],
+    [readonly],
   );
 
   return {

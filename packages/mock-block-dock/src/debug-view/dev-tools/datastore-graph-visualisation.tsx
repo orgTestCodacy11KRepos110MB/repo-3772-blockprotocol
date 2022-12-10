@@ -1,4 +1,4 @@
-import { Entity, Subgraph } from "@blockprotocol/graph";
+import { Entity, EntityEditionId, Subgraph } from "@blockprotocol/graph";
 import {
   getEntities,
   getEntityTypeById,
@@ -12,6 +12,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { useMockBlockDockContext } from "../../mock-block-dock-context";
 import { partitionArrayByCondition } from "../../util";
+
+/** @todo - rename this file to visualization */
 
 const parseLabelFromEntity = (entityToLabel: Entity, subgraph: Subgraph) => {
   const getFallbackLabel = () => {
@@ -157,6 +159,25 @@ const mapLinkToEChartEdge = ({
   label: { show: false, formatter: path.replace("$.", "") },
 });
 
+const getEntitiesAsNodes = (subgraph: Subgraph) => {
+  const allEntities = getEntities(subgraph);
+
+  const [linkEntities, nonLinkEntities] = partitionArrayByCondition(
+    allEntities,
+    (entity) =>
+      entity.linkData?.leftEntityId !== undefined &&
+      entity.linkData?.rightEntityId !== undefined,
+  );
+
+  return [
+    ...nonLinkEntities.map((entity) => mapEntityToEChartNode(entity, subgraph)),
+    /** @todo - Render link entities differently */
+    ...linkEntities.map((linkEntity) =>
+      mapEntityToEChartNode(linkEntity, subgraph),
+    ),
+  ]
+}
+
 export const DatastoreGraphVisualisation = () => {
   const { graph } = useMockBlockDockContext();
 
@@ -177,14 +198,8 @@ export const DatastoreGraphVisualisation = () => {
     };
   }, [chart]);
 
-  const allEntities = getEntities(graph);
-
-  const [linkEntities, nonLinkEntities] = partitionArrayByCondition(
-    allEntities,
-    (entity) =>
-      entity.linkData?.leftEntityId !== undefined &&
-      entity.linkData?.rightEntityId !== undefined,
-  );
+  /** @todo - Render ontology elements */
+  const [eChartNodes, setEChartNodes] = useState<EChartNode[]>(getEntitiesAsNodes(graph));
 
   const [eChartNodes, setEChartNodes] = useState<EChartNode[]>([
     ...nonLinkEntities.map((entity) => mapEntityToEChartNode(entity, graph)),
@@ -199,8 +214,8 @@ export const DatastoreGraphVisualisation = () => {
   );
 
   useEffect(() => {
-    setEChartNodes(entities.map(mapEntityToEChartNode(entityTypes)));
-  }, [entities, entityTypes]);
+    setEChartNodes(getEntitiesAsNodes(graph));
+  }, [graph]);
 
   useEffect(() => {
     setEChartEdges(links.map(mapLinkToEChartEdge));

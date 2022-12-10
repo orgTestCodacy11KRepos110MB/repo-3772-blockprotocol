@@ -3,6 +3,7 @@ import { Dispatch, SetStateAction, useMemo } from "react";
 
 import { mockData as initialMockData } from "./data";
 import { MockData, useMockDatastore } from "./datastore";
+import { MockDataStore } from "./datastore/use-mock-datastore";
 import { useDefaultState } from "./use-default-state";
 
 export type MockBlockHookArgs = {
@@ -14,7 +15,7 @@ export type MockBlockHookArgs = {
 
 export type MockBlockHookResult = {
   blockEntityEditionId: EntityEditionId;
-  datastore: MockData;
+  mockDatastore: MockDataStore;
   readonly: boolean;
   setReadonly: Dispatch<SetStateAction<boolean>>;
   setEntityEditionIdOfEntityForBlock: Dispatch<SetStateAction<EntityEditionId>>;
@@ -90,11 +91,11 @@ export const useMockBlockProps = ({
     // initialLinkedAggregations,
   ]);
 
-  const datastore = useMockDatastore(mockData, readonly);
+  const mockDatastore = useMockDatastore(mockData, readonly);
 
   return {
     blockEntityEditionId: entityEditionIdOfEntityForBlock,
-    datastore,
+    mockDatastore,
     // linkedAggregations,
     readonly,
     setEntityEditionIdOfEntityForBlock,

@@ -1,16 +1,15 @@
 import {
   EntityId,
+  EntityVertex,
+  KnowledgeGraphOutwardEdge,
   KnowledgeGraphRootedEdges,
+  KnowledgeGraphVertices,
   Subgraph,
   Timestamp,
 } from "@blockprotocol/graph";
-import { KnowledgeGraphOutwardEdge } from "@blockprotocol/graph/dist/types/subgraph/edges/outward-edge";
-import {
-  EntityVertex,
-  KnowledgeGraphVertices,
-} from "@blockprotocol/graph/dist/types/subgraph/vertices";
+import isEqual from "lodash/isEqual";
 
-import { MockData } from "../use-mock-block-props/use-mock-datastore";
+import { MockData } from "./use-mock-datastore";
 
 /** @todo - clean up the assertions here */
 export const addKnowledgeGraphEdge = (
@@ -28,7 +27,18 @@ export const addKnowledgeGraphEdge = (
   } else if (!subgraph.edges[sourceEntityId]![atTime]) {
     subgraph.edges[sourceEntityId]![atTime] = [outwardEdge];
   } else {
-    subgraph.edges[sourceEntityId]![atTime]!.push(outwardEdge);
+    const outwardEdgesAtTime = subgraph.edges[sourceEntityId]![atTime]!;
+    /**
+     * @todo - Q for PR review: Added a lodash dependency for this, equality of the outward edge is actually complicated
+     *    fine to keep?
+     */
+    if (
+      !outwardEdgesAtTime.find((otherOutwardEdge) =>
+        isEqual(otherOutwardEdge, outwardEdge),
+      )
+    ) {
+      outwardEdgesAtTime.push(outwardEdge);
+    }
   }
 
   /* eslint-enable no-param-reassign */
@@ -78,7 +88,9 @@ export const mockDataToSubgraph = (mockData: MockData) => {
         [editionId.versionId]: entityVertex,
       };
     } else {
-      subgraph.vertices[editionId.baseId]![editionId.versionId] = entityVertex;
+      (subgraph.vertices as KnowledgeGraphVertices)[editionId.baseId]![
+        editionId.versionId
+      ] = entityVertex;
     }
   }
 

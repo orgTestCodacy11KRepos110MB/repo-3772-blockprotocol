@@ -18,7 +18,7 @@ import {
 } from "@blockprotocol/graph/stdlib";
 
 import { typedEntries } from "../util";
-import { addKnowledgeGraphEdge } from "./mock-data-to-subgraph";
+import { addKnowledgeGraphEdge } from "./mutate-subgraph";
 import { ResolveMap } from "./traverse/resolve-map";
 import { PartialDepths, TraversalContext } from "./traverse/traversal-context";
 

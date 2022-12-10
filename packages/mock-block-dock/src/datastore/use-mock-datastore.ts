@@ -11,6 +11,7 @@ import { useDefaultState } from "../use-default-state";
 import { aggregateEntities as aggregateEntitiesImpl } from "./hook-implementations/entity/aggregate-entities";
 import { getEntity as getEntityImpl } from "./hook-implementations/entity/get-entity";
 import { mockDataToSubgraph } from "./mock-data-to-subgraph";
+import { addEntitiesToSubgraph } from "./mutate-subgraph";
 
 export type MockData = {
   entities: Entity[];
@@ -85,23 +86,30 @@ export const useMockDatastore = (
           };
         }
         const entityId = uuid();
-        const { entityTypeId, links: newLinks, properties } = data;
+        const { entityTypeId, properties, linkData } = data;
         const newEntity: Entity = {
-          entityId,
-          entityTypeId,
+          metadata: {
+            editionId: {
+              baseId: entityId,
+              versionId: new Date().toISOString(),
+            },
+            entityTypeId,
+          },
           properties,
+          linkData,
         };
-        const linksToCreate = (newLinks ?? []).map((link) => ({
-          linkId: uuid(),
-          sourceEntityId: entityId,
-          ...link,
-        }));
 
-        setEntities((currentEntities) => [...currentEntities, newEntity]);
-        setLinks((currentLinks) => [...currentLinks, ...linksToCreate]);
+        setGraph((currentGraph) => {
+          // A shallow copy should be enough to trigger a re-render
+          const newSubgraph = {
+            ...currentGraph,
+          };
+          addEntitiesToSubgraph(newSubgraph, [newEntity]);
+          return newSubgraph;
+        });
         return { data: newEntity };
       },
-      [setEntities, setLinks, readonly],
+      [readonly, setGraph],
     );
 
   const getEntity: EmbedderGraphMessageCallbacks["getEntity"] = useCallback(

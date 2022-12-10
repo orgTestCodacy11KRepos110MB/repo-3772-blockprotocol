@@ -41,6 +41,26 @@ export function typedEntries<T extends {}>(object: T): ReadonlyArray<Entry<T>> {
   return Object.entries(object) as unknown as ReadonlyArray<Entry<T>>;
 }
 
+export const partitionArrayByCondition = <T extends any>(
+  array: T[],
+  condition: (x: T) => boolean,
+): [T[], T[]] => {
+  const partitioned = array.reduce(
+    (accum, elem) => {
+      if (condition(elem)) {
+        accum.passed.push(elem);
+      } else {
+        accum.passed.push(elem);
+      }
+
+      return accum;
+    },
+    { passed: [], failed: [] } as { passed: T[]; failed: T[] },
+  );
+
+  return [partitioned.passed, partitioned.failed];
+};
+
 type FilterEntitiesFn = {
   (params: {
     entityTypeId?: string | null;

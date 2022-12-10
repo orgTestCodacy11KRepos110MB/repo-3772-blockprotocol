@@ -1,9 +1,9 @@
 import { EntityEditionId, OntologyTypeEditionId } from "@blockprotocol/graph";
 
-import { PartialDepths, ResolvedDepths } from "./traversal-context";
+import { Depths, PartialDepths } from "./traversal-context";
 
 export class ResolveMap {
-  constructor(public map: Record<string, ResolvedDepths>) {}
+  constructor(public map: Record<string, Depths>) {}
 
   /**
    *  Inserts an identifier of a given graph element into the map.
@@ -30,7 +30,7 @@ export class ResolveMap {
     if (previousDepths) {
       return previousDepths.update(depths);
     } else {
-      this.map[idString] = new ResolvedDepths(depths);
+      this.map[idString] = new Depths(depths);
       return { ...depths };
     }
   }

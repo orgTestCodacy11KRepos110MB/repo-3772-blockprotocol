@@ -14,16 +14,15 @@ export type PartialDepths = {
   };
 };
 
-export class ResolvedDepths {
-  constructor(protected depths: PartialDepths) {}
+export class Depths {
+  constructor(public inner: PartialDepths) {}
 
   /**
    * Takes a subset of `GraphResolveDepths` and checks if any of the supplied depths are greater than the ones already
-   * tracked in this. If they are, this object is updated and the different depths are returned so that they can be
-   * resolved further.
+   * tracked in this. If they are, this object is updated and the different depths are returned.
    *
    * @param {PartialDepths} newDepths - the new subset of depths at which the element should be resolved to
-   * @returns {PartialDepths} - the depths that hadn't been resolved yet for this element
+   * @returns {PartialDepths} - the depths that were greater in `newDepths` than they were in `this`
    */
   update(newDepths: PartialDepths): PartialDepths {
     const updatedDepths: PartialDepths = {};
@@ -33,14 +32,14 @@ export class ResolvedDepths {
           if (depth < 1) {
             continue;
           }
-          if (!this.depths[edgeKind]) {
-            this.depths[edgeKind] = {
+          if (!this.inner[edgeKind]) {
+            this.inner[edgeKind] = {
               [direction]: depth,
             };
-          } else if (!this.depths[edgeKind]![direction]) {
-            this.depths[edgeKind]![direction] = depth;
-          } else if (depth > this.depths[edgeKind]![direction]!) {
-            this.depths[edgeKind]![direction] = depth;
+          } else if (!this.inner[edgeKind]![direction]) {
+            this.inner[edgeKind]![direction] = depth;
+          } else if (depth > this.inner[edgeKind]![direction]!) {
+            this.inner[edgeKind]![direction] = depth;
           } else {
             continue;
           }

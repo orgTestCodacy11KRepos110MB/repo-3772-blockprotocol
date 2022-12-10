@@ -37,18 +37,16 @@ export {
  * @param {EntityId} entityId - The `EntityId` of the entity to get.
  * @throws if the vertex isn't an `EntityVertex`
  */
-export const getEntity = (subgraph: Subgraph, entityId: EntityId) => {
+export const getEntity = (subgraph: Subgraph, entityId: EntityId) =>
   getEntityTemporal(subgraph, entityId);
-};
 
 /**
  * Returns all `Entity`s within the vertices of the subgraph.
  *
  * @param subgraph
  */
-export const getEntities = (subgraph: Subgraph) => {
+export const getEntities = (subgraph: Subgraph) =>
   getEntitiesTemporal(subgraph, true);
-};
 
 /**
  * Gets all outgoing link entities from a given entity.

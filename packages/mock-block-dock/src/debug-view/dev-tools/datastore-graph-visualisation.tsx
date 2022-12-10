@@ -1,5 +1,9 @@
-import { EntityType } from "@blockprotocol/graph";
-import { Entity, Link } from "@blockprotocol/graph/.";
+import { Entity, Subgraph } from "@blockprotocol/graph";
+import {
+  getEntities,
+  getEntityTypeById,
+  getPropertyTypesByBaseUri,
+} from "@blockprotocol/graph/dist/stdlib";
 import { Box } from "@mui/material";
 import { GraphChart, GraphSeriesOption } from "echarts/charts";
 import * as echarts from "echarts/core";
@@ -7,38 +11,70 @@ import { SVGRenderer } from "echarts/renderers";
 import { useEffect, useRef, useState } from "react";
 
 import { useMockBlockDockContext } from "../../mock-block-dock-context";
+import { partitionArrayByCondition } from "../../util";
 
-const parseLabelFromEntity =
-  (type?: EntityType) =>
-  (entity: Entity): string => {
-    // if the schema has a labelProperty set, prefer that
-    const labelProperty = type?.schema?.labelProperty;
-    if (
-      labelProperty &&
-      typeof entity.properties[labelProperty] === "string" &&
-      entity.properties[labelProperty]
-    ) {
-      return entity.properties[labelProperty] as string;
-    }
+const parseLabelFromEntity = (entityToLabel: Entity, subgraph: Subgraph) => {
+  const getFallbackLabel = () => {
+    // fallback to the entity type and a few characters of the entityUuid
+    const entityId = entityToLabel.metadata.editionId.baseId;
 
-    // fallback to some likely display name properties
-    const options = [
-      "name",
-      "preferredName",
-      "displayName",
-      "title",
-      "shortname",
-    ];
-    for (const option of options) {
-      if (typeof entity.properties[option] === "string") {
-        return entity.properties[option] as string;
-      }
-    }
+    const entityType = getEntityTypeById(
+      subgraph,
+      entityToLabel.metadata.entityTypeId,
+    );
+    const entityTypeName = entityType?.schema.title ?? "Entity";
 
-    const entityTypeName = type?.schema?.title ?? "Entity";
-
-    return `${entityTypeName}-${entity.entityId.slice(0, 5)}`;
+    return `${entityTypeName}-${entityId.slice(0, 5)}`;
   };
+
+  const getFallbackIfNotString = (val: any) => {
+    if (!val || typeof val !== "string") {
+      return getFallbackLabel();
+    }
+
+    return val;
+  };
+
+  // fallback to some likely display name properties
+  const options = [
+    "name",
+    "preferred name",
+    "display name",
+    "title",
+    "shortname",
+  ];
+
+  const propertyTypes: { title?: string; propertyTypeBaseUri: string }[] =
+    Object.keys(entityToLabel.properties).map((propertyTypeBaseUri) => {
+      /** @todo - pick the latest version, or the version in the entity type, rather than first element? */
+      const [propertyType] = getPropertyTypesByBaseUri(
+        subgraph,
+        propertyTypeBaseUri,
+      );
+
+      return propertyType
+        ? {
+            title: propertyType.schema.title.toLowerCase(),
+            propertyTypeBaseUri,
+          }
+        : {
+            title: undefined,
+            propertyTypeBaseUri,
+          };
+    });
+
+  for (const option of options) {
+    const found = propertyTypes.find(({ title }) => title === option);
+
+    if (found) {
+      return getFallbackIfNotString(
+        entityToLabel.properties[found.propertyTypeBaseUri],
+      );
+    }
+  }
+
+  return getFallbackLabel();
+};
 
 type SeriesOption = GraphSeriesOption;
 

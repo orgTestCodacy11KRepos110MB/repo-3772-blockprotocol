@@ -9,6 +9,7 @@ import { v4 as uuid } from "uuid";
 
 import { useDefaultState } from "../use-default-state";
 import { filterAndSortEntitiesOrTypes } from "../util";
+import { getEntity as getEntityImpl } from "./hook-implementations/entity/get-entity";
 import { mockDataToSubgraph } from "./mock-data-to-subgraph";
 
 export type MockData = {
@@ -107,10 +108,10 @@ export const useMockDatastore = (
           ],
         };
       }
-      const foundEntity = entities.find(
-        (entity) => entity.entityId === data.entityId,
-      );
-      if (!foundEntity) {
+
+      const entitySubgraph = getEntityImpl(data, graph);
+
+      if (!entitySubgraph) {
         return {
           errors: [
             {
@@ -120,9 +121,9 @@ export const useMockDatastore = (
           ],
         };
       }
-      return { data: foundEntity };
+      return { data: entitySubgraph };
     },
-    [entities],
+    [graph],
   );
 
   const updateEntity: EmbedderGraphMessageCallbacks["updateEntity"] =

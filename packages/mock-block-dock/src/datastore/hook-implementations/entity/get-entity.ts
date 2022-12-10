@@ -3,12 +3,14 @@ import {
   Subgraph,
   SubgraphRootTypes,
 } from "@blockprotocol/graph";
-import { getEntity as getEntityFromSubgraph } from "@blockprotocol/graph/stdlib-temporal";
+import { getEntity as getEntityFromSubgraph } from "@blockprotocol/graph/stdlib";
+
+import { traverseElement } from "../../traverse";
+import { TraversalContext } from "../../traverse/traversal-context";
 
 export const getEntity = (
   {
     entityId,
-    atTimestamp,
     graphResolveDepths = {
       hasLeftEntity: { incoming: 1, outgoing: 1 },
       hasRightEntity: { incoming: 1, outgoing: 1 },
@@ -16,17 +18,26 @@ export const getEntity = (
   }: GetEntityData,
   graph: Subgraph,
 ): Subgraph<SubgraphRootTypes["entity"]> | undefined => {
-  /** @todo - We can make this **much much** faster, this is a temporary implementation */
   const entityEdition = getEntityFromSubgraph(graph, entityId);
 
   if (entityEdition === undefined) {
     return undefined;
   }
 
-  return {
+  const subgraph = {
     roots: [entityEdition.metadata.editionId],
     vertices: {},
     edges: {},
-    graphResolveDepths,
+    depths: graphResolveDepths,
   };
+
+  traverseElement(
+    subgraph,
+    entityEdition.metadata.editionId,
+    graph,
+    new TraversalContext(graph),
+    graphResolveDepths,
+  );
+
+  return subgraph;
 };

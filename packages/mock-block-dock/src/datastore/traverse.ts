@@ -1,13 +1,30 @@
 import {
   EntityEditionId,
+  EntityId,
   OntologyTypeEditionId,
   Subgraph,
 } from "@blockprotocol/graph";
+import { getRightEntityForLinkEntity } from "@blockprotocol/graph/dist/stdlib";
+import {
+  HasLeftEntityEdge,
+  HasRightEntityEdge,
+  IncomingLinkEdge,
+  OutgoingLinkEdge,
+} from "@blockprotocol/graph/dist/types/subgraph/edges/outward-edge-alias";
+import {
+  getIncomingLinksForEntity,
+  getLeftEntityForLinkEntity,
+  getOutgoingLinksForEntity,
+} from "@blockprotocol/graph/stdlib";
 
 import { typedEntries } from "../util";
+import { addKnowledgeGraphEdge } from "./mock-data-to-subgraph";
+import { ResolveMap } from "./traverse/resolve-map";
 import { PartialDepths, TraversalContext } from "./traverse/traversal-context";
 
 /** @todo - doc */
+/** @todo - Update this to take an interval instead of always being "latest" */
+/** @todo - Update this to handle ontology edges */
 export const traverseElement = (
   traversalSubgraph: Subgraph,
   elementIdentifier: EntityEditionId | OntologyTypeEditionId,
@@ -48,7 +65,7 @@ export const traverseElement = (
     };
   }
 
-  const toResolve: Record<string, PartialDepths> = {};
+  const toResolve: ResolveMap = new ResolveMap({});
 
   for (const [edgeKind, depths] of typedEntries(unresolvedDepths)) {
     // Little hack for typescript, this is wrapped in a function with a return value to get type safety to ensure the
@@ -56,20 +73,146 @@ export const traverseElement = (
     ((): boolean => {
       switch (edgeKind) {
         case "hasLeftEntity": {
+          const entityId = elementIdentifier.baseId as EntityId;
+
           if (depths.incoming) {
             // get outgoing links for entity and insert edges
+            for (const outgoingLinkEntity of getOutgoingLinksForEntity(
+              datastore,
+              entityId,
+            )) {
+              const {
+                metadata: {
+                  editionId: {
+                    baseId: outgoingLinkEntityId,
+                    versionId: edgeTimestamp,
+                  },
+                },
+              } = outgoingLinkEntity;
+
+              const outgoingLinkEdge: OutgoingLinkEdge = {
+                kind: "HAS_LEFT_ENTITY",
+                reversed: true,
+                rightEndpoint: {
+                  baseId: outgoingLinkEntityId,
+                  timestamp: edgeTimestamp,
+                },
+              };
+
+              addKnowledgeGraphEdge(
+                traversalSubgraph,
+                entityId,
+                edgeTimestamp,
+                outgoingLinkEdge,
+              );
+
+              toResolve.insert(outgoingLinkEntity.metadata.editionId, {
+                [edgeKind]: { incoming: depths.incoming - 1 },
+              });
+            }
           }
           if (depths.outgoing) {
             // get left entity for link entity and insert edges
+            const leftEntity = getLeftEntityForLinkEntity(datastore, entityId);
+            const {
+              metadata: {
+                editionId: { baseId: leftEntityId, versionId: edgeTimestamp },
+              },
+            } = leftEntity;
+
+            const hasLeftEntityEdge: HasLeftEntityEdge = {
+              kind: "HAS_LEFT_ENTITY",
+              reversed: false,
+              rightEndpoint: {
+                baseId: leftEntityId,
+                timestamp: edgeTimestamp,
+              },
+            };
+
+            addKnowledgeGraphEdge(
+              traversalSubgraph,
+              entityId,
+              edgeTimestamp,
+              hasLeftEntityEdge,
+            );
+
+            toResolve.insert(leftEntity.metadata.editionId, {
+              [edgeKind]: { outgoing: depths.outgoing - 1 },
+            });
           }
+
           return true;
         }
         case "hasRightEntity": {
+          const entityId = elementIdentifier.baseId as EntityId;
+
           if (depths.incoming) {
             // get incoming links for entity and insert edges
+            for (const incomingLinkEntity of getIncomingLinksForEntity(
+              datastore,
+              entityId,
+            )) {
+              const {
+                metadata: {
+                  editionId: {
+                    baseId: incomingLinkEntityId,
+                    versionId: edgeTimestamp,
+                  },
+                },
+              } = incomingLinkEntity;
+
+              const incomingLinkEdge: IncomingLinkEdge = {
+                kind: "HAS_RIGHT_ENTITY",
+                reversed: true,
+                rightEndpoint: {
+                  baseId: incomingLinkEntityId,
+                  timestamp: edgeTimestamp,
+                },
+              };
+
+              addKnowledgeGraphEdge(
+                traversalSubgraph,
+                entityId,
+                edgeTimestamp,
+                incomingLinkEdge,
+              );
+
+              toResolve.insert(incomingLinkEntity.metadata.editionId, {
+                [edgeKind]: { incoming: depths.incoming - 1 },
+              });
+            }
           }
           if (depths.outgoing) {
             // get right entity for link entity and insert edges
+            const rightEntity = getRightEntityForLinkEntity(
+              datastore,
+              entityId,
+            );
+            const {
+              metadata: {
+                editionId: { baseId: rightEntityId, versionId: edgeTimestamp },
+              },
+            } = rightEntity;
+
+            const hasLeftEntityEdge: HasRightEntityEdge = {
+              kind: "HAS_RIGHT_ENTITY",
+              reversed: false,
+              rightEndpoint: {
+                baseId: rightEntityId,
+                timestamp: edgeTimestamp,
+              },
+            };
+
+            addKnowledgeGraphEdge(
+              traversalSubgraph,
+              entityId,
+              edgeTimestamp,
+              hasLeftEntityEdge,
+            );
+
+            toResolve.insert(rightEntity.metadata.editionId, {
+              [edgeKind]: { outgoing: depths.outgoing - 1 },
+            });
           }
           return true;
         }
@@ -78,7 +221,7 @@ export const traverseElement = (
   }
 
   for (const [siblingElementIdentifierString, depths] of typedEntries(
-    toResolve,
+    toResolve.map,
   )) {
     traverseElement(
       traversalSubgraph,
@@ -87,7 +230,7 @@ export const traverseElement = (
         | OntologyTypeEditionId,
       datastore,
       traversalContext,
-      depths,
+      depths.inner,
     );
   }
 };

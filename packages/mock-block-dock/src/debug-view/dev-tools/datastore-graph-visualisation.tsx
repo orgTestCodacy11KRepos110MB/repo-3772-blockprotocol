@@ -126,15 +126,14 @@ type EChartNode = {
   };
 };
 
-const mapEntityToEChartNode =
-  (entityTypes: EntityType[]) =>
-  (entity: Entity): EChartNode => ({
-    id: entity.entityId,
-    name: parseLabelFromEntity(
-      entityTypes.find((type) => type.entityTypeId === entity.entityTypeId),
-    )(entity),
-    label: { show: false },
-  });
+const mapEntityToEChartNode = (
+  entity: Entity,
+  subgraph: Subgraph,
+): EChartNode => ({
+  id: JSON.stringify(entity.metadata.editionId),
+  name: parseLabelFromEntity(entity, subgraph),
+  label: { show: false },
+});
 
 type EChartEdge = {
   id: string;
@@ -159,7 +158,7 @@ const mapLinkToEChartEdge = ({
 });
 
 export const DatastoreGraphVisualisation = () => {
-  const { datastore } = useMockBlockDockContext();
+  const { graph } = useMockBlockDockContext();
 
   const eChartWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -178,11 +177,22 @@ export const DatastoreGraphVisualisation = () => {
     };
   }, [chart]);
 
-  const { entities, entityTypes, links } = datastore;
+  const allEntities = getEntities(graph);
 
-  const [eChartNodes, setEChartNodes] = useState<EChartNode[]>(
-    entities.map(mapEntityToEChartNode(entityTypes)),
+  const [linkEntities, nonLinkEntities] = partitionArrayByCondition(
+    allEntities,
+    (entity) =>
+      entity.linkData?.leftEntityId !== undefined &&
+      entity.linkData?.rightEntityId !== undefined,
   );
+
+  const [eChartNodes, setEChartNodes] = useState<EChartNode[]>([
+    ...nonLinkEntities.map((entity) => mapEntityToEChartNode(entity, graph)),
+    /** @todo - Render link entities differently */
+    ...linkEntities.map((linkEntity) =>
+      mapEntityToEChartNode(linkEntity, graph),
+    ),
+  ]);
 
   const [eChartEdges, setEChartEdges] = useState<EChartEdge[]>(
     links.map(mapLinkToEChartEdge),

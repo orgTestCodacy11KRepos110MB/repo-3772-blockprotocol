@@ -8,7 +8,7 @@ import { useCallback } from "react";
 import { v4 as uuid } from "uuid";
 
 import { useDefaultState } from "../use-default-state";
-import { filterAndSortEntitiesOrTypes } from "../util";
+import { aggregateEntities as aggregateEntitiesImpl } from "./hook-implementations/entity/aggregate-entities";
 import { getEntity as getEntityImpl } from "./hook-implementations/entity/get-entity";
 import { mockDataToSubgraph } from "./mock-data-to-subgraph";
 
@@ -50,13 +50,21 @@ export const useMockDatastore = (
 
   const aggregateEntities: EmbedderGraphMessageCallbacks["aggregateEntities"] =
     useCallback(
-      async (payload) => ({
-        data: filterAndSortEntitiesOrTypes(
-          entities,
-          payload.data ?? { operation: {} },
-        ),
-      }),
-      [entities],
+      async ({ data }) => {
+        if (!data) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "aggregateEntities requires 'data' input",
+              },
+            ],
+          };
+        }
+
+        return { data: aggregateEntitiesImpl(data, graph) };
+      },
+      [graph],
     );
 
   const createEntity: EmbedderGraphMessageCallbacks["createEntity"] =

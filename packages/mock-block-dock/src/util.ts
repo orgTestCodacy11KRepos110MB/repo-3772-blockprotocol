@@ -111,7 +111,7 @@ const filterEntities: FilterEntitiesFn = (params) => {
   const { entityTypeId, entities, multiFilter } = params;
 
   return entities.filter((entity) => {
-    if (entityTypeId && entityTypeId !== entity.entityTypeId) {
+    if (entityTypeId && entityTypeId !== entity.metadata.entityTypeId) {
       return false;
     }
 
@@ -256,7 +256,7 @@ export function filterAndSortEntitiesOrTypes(
       : undefined;
   if (entityTypeIdFilter) {
     results = results.filter(
-      (entity) => entity.entityTypeId === entityTypeIdFilter,
+      (entity) => entity.metadata.entityTypeId === entityTypeIdFilter,
     );
   }
 

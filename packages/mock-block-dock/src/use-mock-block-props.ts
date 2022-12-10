@@ -2,11 +2,8 @@ import { Entity, EntityEditionId } from "@blockprotocol/graph";
 import { Dispatch, SetStateAction, useMemo } from "react";
 
 import { mockData as initialMockData } from "./data";
+import { MockData, useMockDatastore } from "./datastore";
 import { useDefaultState } from "./use-default-state";
-import {
-  MockData,
-  useMockDatastore,
-} from "./use-mock-block-props/use-mock-datastore";
 
 export type MockBlockHookArgs = {
   blockEntityEditionId?: EntityEditionId;

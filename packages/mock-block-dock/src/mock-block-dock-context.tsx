@@ -15,7 +15,7 @@ import {
   useState,
 } from "react";
 
-import { MockData } from "./use-mock-block-props/use-mock-datastore";
+import { MockData } from "./datastore";
 
 type MockBlockDockInfo = {
   blockEntity: Entity;

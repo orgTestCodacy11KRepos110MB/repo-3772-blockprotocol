@@ -4,6 +4,7 @@ import {
   Subgraph,
   UploadFileReturn,
 } from "@blockprotocol/graph";
+import { getEntity as getEntityFromSubgraph } from "@blockprotocol/graph/stdlib";
 import { useCallback } from "react";
 import { v4 as uuid } from "uuid";
 
@@ -161,12 +162,17 @@ export const useMockDatastore = (
         }
 
         return new Promise((resolve) => {
-          setEntities((currentEntities) => {
-            if (
-              !currentEntities.find(
-                ({ entityId }) => entityId === data.entityId,
-              )
-            ) {
+          setGraph((currentGraph) => {
+            const {
+              entityId,
+              entityTypeId,
+              properties,
+              leftToRightOrder,
+              rightToLeftOrder,
+            } = data;
+            const currentEntity = getEntityFromSubgraph(currentGraph, entityId);
+
+            if (currentEntity === undefined) {
               resolve({
                 errors: [
                   {
@@ -175,23 +181,70 @@ export const useMockDatastore = (
                   },
                 ],
               });
-              return currentEntities;
+              return currentGraph;
             }
-            return currentEntities.map((entity) => {
-              if (entity.entityId === data.entityId) {
-                const newEntity = {
-                  ...entity,
-                  properties: data.properties,
-                };
-                resolve({ data: newEntity });
-                return newEntity;
-              }
-              return entity;
-            });
+
+            /**
+             * @todo - This assumes that once an entity is a link, it's always a link, and its endpoints can't be changed
+             *   however we don't enforce this currently. We should probably check the given entityType here
+             */
+            if (
+              (leftToRightOrder || rightToLeftOrder) &&
+              !(
+                currentEntity.linkData?.leftEntityId &&
+                currentEntity.linkData?.rightEntityId
+              )
+            ) {
+              resolve({
+                errors: [
+                  {
+                    code: "INVALID_INPUT",
+                    message:
+                      "Could not update non-link entity with link metadata (order)",
+                  },
+                ],
+              });
+              return currentGraph;
+            }
+
+            /**
+             * @todo - This assumes that an entity cannot become a link if it didn't start off as one, however we don't
+             *    enforce this currently. We should probably check the given entityType here
+             */
+            const linkData =
+              currentEntity.linkData?.leftEntityId &&
+              currentEntity.linkData?.rightEntityId
+                ? {
+                    leftEntityId: currentEntity.linkData.leftEntityId,
+                    rightEntityId: currentEntity.linkData.rightEntityId,
+                    leftToRightOrder,
+                    rightToLeftOrder,
+                  }
+                : undefined;
+
+            const updatedEntity: Entity = {
+              metadata: {
+                editionId: {
+                  baseId: entityId,
+                  versionId: new Date().toISOString(),
+                },
+                entityTypeId,
+              },
+              properties,
+              linkData,
+            };
+
+            // A shallow copy should be enough to trigger a re-render
+            const newSubgraph = {
+              ...currentGraph,
+            };
+            resolve({ data: updatedEntity });
+            addEntitiesToSubgraph(newSubgraph, [updatedEntity]);
+            return newSubgraph;
           });
         });
       },
-      [setEntities, readonly],
+      [readonly, setGraph],
     );
 
   const deleteEntity: EmbedderGraphMessageCallbacks["deleteEntity"] =

@@ -19,7 +19,7 @@ export type MockData = {
   // linkedAggregationDefinitions: LinkedAggregationDefinition[];
 };
 
-export type MockDataStore = MockData & {
+export type MockDataStore = {
   graph: Subgraph;
   graphServiceCallbacks: Required<EmbedderGraphMessageCallbacks>;
 };

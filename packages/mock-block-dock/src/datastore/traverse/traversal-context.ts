@@ -6,6 +6,7 @@ import {
 } from "@blockprotocol/graph";
 
 import { typedEntries } from "../../util";
+import { ResolveMap } from "./resolve-map";
 
 export type PartialDepths = {
   [K1 in keyof GraphResolveDepths]?: {
@@ -64,24 +65,24 @@ export class ResolvedDepths {
  */
 export class TraversalContext {
   private readonly graph: Subgraph;
-  private readonly resolveMap: Record<string, ResolvedDepths>;
+  private readonly resolveMap: ResolveMap;
 
   constructor(graph: Subgraph) {
     this.graph = graph;
-    this.resolveMap = {};
+    this.resolveMap = new ResolveMap({});
   }
 
   /**
-   *  Inserts an identifier of a given graph element into the context.
+   *  Inserts an identifier of a given graph element into the context using `ResolveMap.insert`.
    *
    *  If the element does not already exist in the context, it will be inserted with the provided `depths`. In the case,
-   *  that the dependency already exists, the `depths` will be compared with depths used when inserting it before:
+   *  that the element already exists, the `depths` will be compared with depths used when inserting it before:
    *  - If there weren't any previous depths, the element hasn't been resolved at all and all depths need to be
-   *  resolved, and are returned
+   *        resolved, and are returned
    *  - If some of the new `depths` are higher, the element has not been fully resolved yet and the context is updated,
-   *  returning the subset of depths that need further resolution.
+   *        returning the subset of depths that need further resolution.
    *  - If all of the new `depths` are lower, the element had already been resolved to a deeper depth than the current
-   *  branch of exploration, and the returned object will be empty.
+   *        branch of exploration, and the returned object will be empty.
    * @param identifier
    * @param {PartialDepths} depths - the depths at which this current branch intends to resolve for the given
    *    element
@@ -91,14 +92,6 @@ export class TraversalContext {
     identifier: EntityEditionId | OntologyTypeEditionId,
     depths: PartialDepths,
   ): PartialDepths {
-    const idString = JSON.stringify(identifier);
-
-    const previousDepths = this.resolveMap[idString];
-    if (previousDepths) {
-      return previousDepths.update(depths);
-    } else {
-      this.resolveMap[idString] = new ResolvedDepths(depths);
-      return { ...depths };
-    }
+    return this.resolveMap.insert(identifier, depths);
   }
 }

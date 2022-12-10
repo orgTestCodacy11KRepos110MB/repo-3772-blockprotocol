@@ -250,6 +250,17 @@ export const useMockDatastore = (
   const deleteEntity: EmbedderGraphMessageCallbacks["deleteEntity"] =
     useCallback(
       async ({ data }) => {
+        return {
+          errors: [
+            {
+              code: "NOT_IMPLEMENTED",
+              message: `Entity deletion is not currently supported`,
+            },
+          ],
+        };
+
+        /** @todo - implement entity deletion */
+        // eslint-disable-next-line no-unreachable -- currently unimplemented
         if (readonly) {
           return readonlyErrorReturn;
         }
@@ -264,34 +275,14 @@ export const useMockDatastore = (
             ],
           };
         }
-        return new Promise((resolve) => {
-          setEntities((currentEntities) => {
-            if (
-              !currentEntities.find(
-                ({ entityId }) => entityId === data.entityId,
-              )
-            ) {
-              resolve({
-                errors: [
-                  {
-                    code: "NOT_FOUND",
-                    message: `Could not find entity with entityId '${data.entityId}'`,
-                  },
-                ],
-              });
-              return currentEntities;
-            }
-            return currentEntities.filter((entity) => {
-              if (entity.entityId === data.entityId) {
-                resolve({ data: true });
-                return false;
-              }
-              return true;
-            });
+        return new Promise((_resolve) => {
+          setGraph((currentGraph) => {
+            // resolve();
+            return currentGraph;
           });
         });
       },
-      [setEntities, readonly],
+      [setGraph, readonly],
     );
 
   const getEntityType: EmbedderGraphMessageCallbacks["getEntityType"] =
@@ -307,22 +298,8 @@ export const useMockDatastore = (
             ],
           };
         }
-        const foundEntityType = entityTypes.find(
-          (entityType) => entityType.entityTypeId === data.entityTypeId,
-        );
-        if (!foundEntityType) {
-          return {
-            errors: [
-              {
-                code: "NOT_FOUND",
-                message: `Could not find entity type with entityTypeId '${data.entityTypeId}'`,
-              },
-            ],
-          };
-        }
-        return { data: foundEntityType };
       },
-      [entityTypes],
+      [graph],
     );
 
   /** @todo - Reimplement linkedAggregations */

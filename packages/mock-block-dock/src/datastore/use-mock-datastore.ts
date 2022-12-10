@@ -285,6 +285,18 @@ export const useMockDatastore = (
       [setGraph, readonly],
     );
 
+  const aggregateEntityTypes: EmbedderGraphMessageCallbacks["aggregateEntityTypes"] =
+    useCallback(async ({ data: _ }) => {
+      return {
+        errors: [
+          {
+            code: "NOT_IMPLEMENTED",
+            message: `aggregateEntityTypes is not currently supported`,
+          },
+        ],
+      };
+    }, []);
+
   const getEntityType: EmbedderGraphMessageCallbacks["getEntityType"] =
     useCallback(async ({ data }) => {
       return {
@@ -597,6 +609,7 @@ export const useMockDatastore = (
       createEntity,
       deleteEntity,
       updateEntity,
+      aggregateEntityTypes,
       getEntityType,
       // getLinkedAggregation,
       // createLinkedAggregation,

@@ -5,7 +5,7 @@ import { propertyTypes } from "./property-types";
 
 const worksFor: EntityType = {
   kind: "entityType",
-  $id: "https://example.com/types/entity-type/person/v/1",
+  $id: "https://example.com/types/entity-type/works-for/v/1",
   type: "object",
   title: "Works For",
   description: "Has employment at this entity.",
@@ -19,7 +19,7 @@ const worksFor: EntityType = {
 };
 const founderOf: EntityType = {
   kind: "entityType",
-  $id: "https://example.com/types/entity-type/person/v/1",
+  $id: "https://example.com/types/entity-type/founder-of/v/1",
   type: "object",
   title: "Founder of",
   description: "Established this entity.",
@@ -96,7 +96,7 @@ const person: EntityType = {
 };
 const testType: EntityType = {
   kind: "entityType",
-  $id: "https://example.com/types/entity-type/company/v/1",
+  $id: "https://example.com/types/entity-type/test-type/v/1",
   type: "object",
   title: "Test Type",
   description: "A Type for Testing",

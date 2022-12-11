@@ -53,7 +53,7 @@ const createWorksForLink = (
         baseId: `${sourceEntityId}-works-for-${destinationEntityId}`,
         versionId: new Date().toISOString(),
       },
-      entityTypeId: entityTypes.company.$id,
+      entityTypeId: entityTypes.worksFor.$id,
     },
     properties: {},
     linkData: {
@@ -70,10 +70,10 @@ const createFounderOfLink = (
   return {
     metadata: {
       editionId: {
-        baseId: `${sourceEntityId}-works-for-${destinationEntityId}`,
+        baseId: `${sourceEntityId}-founder-of-${destinationEntityId}`,
         versionId: new Date().toISOString(),
       },
-      entityTypeId: entityTypes.company.$id,
+      entityTypeId: entityTypes.founderOf.$id,
     },
     properties: {},
     linkData: {
@@ -91,7 +91,7 @@ const createEntities = (): Entity[] => {
   for (let idx = 0; idx < personNames.length; idx++) {
     people.push(createPerson(idx));
   }
-  for (let idx = 0; idx < personNames.length; idx++) {
+  for (let idx = 0; idx < companyNames.length; idx++) {
     companies.push(createCompany(idx));
   }
 

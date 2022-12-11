@@ -9,7 +9,7 @@ import {
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
   getPropertyTypesByBaseUri,
-} from "@blockprotocol/graph/dist/stdlib";
+} from "@blockprotocol/graph/stdlib";
 import { Box } from "@mui/material";
 import { GraphChart, GraphSeriesOption } from "echarts/charts";
 import * as echarts from "echarts/core";

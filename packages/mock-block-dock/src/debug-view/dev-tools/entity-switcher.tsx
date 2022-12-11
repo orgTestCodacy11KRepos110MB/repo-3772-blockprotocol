@@ -2,8 +2,8 @@ import {
   getEntities,
   getEntity,
   getEntityTypes,
-} from "@blockprotocol/graph/dist/stdlib";
-import { getRoots } from "@blockprotocol/graph/dist/stdlib/subgraph/roots";
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 import {
   Box,

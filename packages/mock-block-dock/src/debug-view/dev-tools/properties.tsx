@@ -1,6 +1,5 @@
 import { Entity } from "@blockprotocol/graph";
-import { getEntityTypeById } from "@blockprotocol/graph/dist/stdlib";
-import { getRoots } from "@blockprotocol/graph/dist/stdlib/subgraph/roots";
+import { getEntityTypeById, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   Box,
   Collapse,

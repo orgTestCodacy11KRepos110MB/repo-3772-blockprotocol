@@ -1,5 +1,5 @@
 import { BlockElementBase } from "@blockprotocol/graph/custom-element";
-import { getRoots } from "@blockprotocol/graph/dist/stdlib/subgraph/roots";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import { extractBaseUri } from "@blockprotocol/type-system/slim";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { html } from "lit";

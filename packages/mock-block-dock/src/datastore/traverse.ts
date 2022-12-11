@@ -1,21 +1,19 @@
 import {
   EntityEditionId,
   EntityId,
-  OntologyTypeEditionId,
-  Subgraph,
-} from "@blockprotocol/graph";
-import { getRightEntityForLinkEntity } from "@blockprotocol/graph/dist/stdlib";
-import {
   HasLeftEntityEdge,
   HasRightEntityEdge,
   IncomingLinkEdge,
+  OntologyTypeEditionId,
   OutgoingLinkEdge,
-} from "@blockprotocol/graph/dist/types/subgraph/edges/outward-edge-alias";
+  Subgraph,
+} from "@blockprotocol/graph";
 import {
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
   getOutgoingLinksForEntity,
 } from "@blockprotocol/graph/stdlib";
+import { getRightEntityForLinkEntity } from "@blockprotocol/graph/stdlib-temporal";
 
 import { typedEntries } from "../util";
 import { addKnowledgeGraphEdge } from "./mutate-subgraph";

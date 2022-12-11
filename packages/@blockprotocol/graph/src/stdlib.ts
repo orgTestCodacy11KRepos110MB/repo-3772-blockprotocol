@@ -4,13 +4,13 @@ import {
   getOutgoingLinkAndTargetEntities as getOutgoingLinkAndTargetEntitiesTemporal,
   getOutgoingLinksForEntity as getOutgoingLinksForEntityTemporal,
   getRightEntityForLinkEntity as getRightEntityForLinkEntityTemporal,
-} from "./stdlib/subgraph/edge/link-entity";
+} from "./stdlib/subgraph/edge/link-entity.js";
 import {
   getEntities as getEntitiesTemporal,
   getEntity as getEntityTemporal,
-} from "./stdlib/subgraph/element/entity";
-import { Entity, EntityId } from "./types/entity";
-import { Subgraph } from "./types/subgraph";
+} from "./stdlib/subgraph/element/entity.js";
+import { Entity, EntityId } from "./types/entity.js";
+import { Subgraph } from "./types/subgraph.js";
 
 export {
   getDataTypeById,
@@ -27,6 +27,7 @@ export {
   getPropertyTypes,
   getPropertyTypesByBaseUri,
 } from "./stdlib/subgraph/element/property-type.js";
+export { getRoots } from "./stdlib/subgraph/roots.js";
 
 /**
  * Gets an `Entity` by its `EntityId` from within the vertices of the subgraph.

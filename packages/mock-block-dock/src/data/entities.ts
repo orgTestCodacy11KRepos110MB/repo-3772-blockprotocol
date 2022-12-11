@@ -122,7 +122,7 @@ const createEntities = (): Entity[] => {
     );
   }
 
-  return [...entities, ...people];
+  return [...entities, ...people, ...companies];
 };
 
 const entities = createEntities();

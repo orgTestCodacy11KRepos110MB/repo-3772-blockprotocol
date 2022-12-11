@@ -110,33 +110,42 @@ export const traverseElement = (
             }
           }
           if (depths.outgoing) {
-            // get left entity for link entity and insert edges
-            const leftEntity = getLeftEntityForLinkEntity(datastore, entityId);
-            const {
-              metadata: {
-                editionId: { baseId: leftEntityId, versionId: edgeTimestamp },
-              },
-            } = leftEntity;
+            if (
+              "linkData" in element.inner &&
+              element.inner.linkData?.leftEntityId !== undefined &&
+              element.inner.linkData?.rightEntityId !== undefined
+            ) {
+              // get left entity for link entity and insert edges
+              const leftEntity = getLeftEntityForLinkEntity(
+                datastore,
+                entityId,
+              );
+              const {
+                metadata: {
+                  editionId: { baseId: leftEntityId, versionId: edgeTimestamp },
+                },
+              } = leftEntity;
 
-            const hasLeftEntityEdge: HasLeftEntityEdge = {
-              kind: "HAS_LEFT_ENTITY",
-              reversed: false,
-              rightEndpoint: {
-                baseId: leftEntityId,
-                timestamp: edgeTimestamp,
-              },
-            };
+              const hasLeftEntityEdge: HasLeftEntityEdge = {
+                kind: "HAS_LEFT_ENTITY",
+                reversed: false,
+                rightEndpoint: {
+                  baseId: leftEntityId,
+                  timestamp: edgeTimestamp,
+                },
+              };
 
-            addKnowledgeGraphEdge(
-              traversalSubgraph,
-              entityId,
-              edgeTimestamp,
-              hasLeftEntityEdge,
-            );
+              addKnowledgeGraphEdge(
+                traversalSubgraph,
+                entityId,
+                edgeTimestamp,
+                hasLeftEntityEdge,
+              );
 
-            toResolve.insert(leftEntity.metadata.editionId, {
-              [edgeKind]: { outgoing: depths.outgoing - 1 },
-            });
+              toResolve.insert(leftEntity.metadata.editionId, {
+                [edgeKind]: { outgoing: depths.outgoing - 1 },
+              });
+            }
           }
 
           return true;
@@ -181,36 +190,45 @@ export const traverseElement = (
             }
           }
           if (depths.outgoing) {
-            // get right entity for link entity and insert edges
-            const rightEntity = getRightEntityForLinkEntity(
-              datastore,
-              entityId,
-            );
-            const {
-              metadata: {
-                editionId: { baseId: rightEntityId, versionId: edgeTimestamp },
-              },
-            } = rightEntity;
+            if (
+              "linkData" in element.inner &&
+              element.inner.linkData?.leftEntityId !== undefined &&
+              element.inner.linkData?.rightEntityId !== undefined
+            ) {
+              // get right entity for link entity and insert edges
+              const rightEntity = getRightEntityForLinkEntity(
+                datastore,
+                entityId,
+              );
+              const {
+                metadata: {
+                  editionId: {
+                    baseId: rightEntityId,
+                    versionId: edgeTimestamp,
+                  },
+                },
+              } = rightEntity;
 
-            const hasLeftEntityEdge: HasRightEntityEdge = {
-              kind: "HAS_RIGHT_ENTITY",
-              reversed: false,
-              rightEndpoint: {
-                baseId: rightEntityId,
-                timestamp: edgeTimestamp,
-              },
-            };
+              const hasLeftEntityEdge: HasRightEntityEdge = {
+                kind: "HAS_RIGHT_ENTITY",
+                reversed: false,
+                rightEndpoint: {
+                  baseId: rightEntityId,
+                  timestamp: edgeTimestamp,
+                },
+              };
 
-            addKnowledgeGraphEdge(
-              traversalSubgraph,
-              entityId,
-              edgeTimestamp,
-              hasLeftEntityEdge,
-            );
+              addKnowledgeGraphEdge(
+                traversalSubgraph,
+                entityId,
+                edgeTimestamp,
+                hasLeftEntityEdge,
+              );
 
-            toResolve.insert(rightEntity.metadata.editionId, {
-              [edgeKind]: { outgoing: depths.outgoing - 1 },
-            });
+              toResolve.insert(rightEntity.metadata.editionId, {
+                [edgeKind]: { outgoing: depths.outgoing - 1 },
+              });
+            }
           }
           return true;
         }

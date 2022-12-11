@@ -2,13 +2,11 @@ import {
   EmbedderGraphMessageCallbacks,
   Entity,
   Subgraph,
-  UploadFileReturn,
 } from "@blockprotocol/graph";
 import { getEntity as getEntityFromSubgraph } from "@blockprotocol/graph/stdlib";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { v4 as uuid } from "uuid";
 
-import { useDefaultState } from "../use-default-state";
 import { aggregateEntities as aggregateEntitiesImpl } from "./hook-implementations/entity/aggregate-entities";
 import { getEntity as getEntityImpl } from "./hook-implementations/entity/get-entity";
 import { mockDataToSubgraph } from "./mock-data-to-subgraph";
@@ -42,9 +40,7 @@ export const useMockDatastore = (
   },
   readonly?: boolean,
 ): MockDataStore => {
-  const [graph, setGraph] = useDefaultState<MockDataStore["graph"]>(
-    mockDataToSubgraph(initialData),
-  );
+  const [graph, setGraph] = useState(mockDataToSubgraph(initialData));
 
   // const [linkedAggregations, setLinkedAggregations] = useDefaultState<
   //   MockDataStore["linkedAggregationDefinitions"]

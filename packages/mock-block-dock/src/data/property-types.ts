@@ -2,7 +2,7 @@ import { PropertyType } from "@blockprotocol/graph";
 
 const numberOfEmployees: PropertyType = {
   kind: "propertyType",
-  $id: "https://blockprotocol.org/@alice/types/property-type/number-of-employees/v/1",
+  $id: "http://example.com/types/property-type/number-of-employees/v/1",
   title: "Number of Employees",
   oneOf: [
     {
@@ -12,7 +12,7 @@ const numberOfEmployees: PropertyType = {
 };
 const name: PropertyType = {
   kind: "propertyType",
-  $id: "https://blockprotocol.org/@alice/types/property-type/name/v/1",
+  $id: "http://example.com/types/property-type/name/v/1",
   title: "Name",
   oneOf: [
     {
@@ -22,7 +22,7 @@ const name: PropertyType = {
 };
 const age: PropertyType = {
   kind: "propertyType",
-  $id: "https://blockprotocol.org/@alice/types/property-type/age/v/1",
+  $id: "http://example.com/types/property-type/age/v/1",
   title: "Age",
   oneOf: [
     {
@@ -32,7 +32,7 @@ const age: PropertyType = {
 };
 const email: PropertyType = {
   kind: "propertyType",
-  $id: "https://blockprotocol.org/@alice/types/property-type/email/v/1",
+  $id: "http://example.com/types/property-type/email/v/1",
   title: "E-Mail",
   oneOf: [
     {
@@ -42,7 +42,7 @@ const email: PropertyType = {
 };
 const username: PropertyType = {
   kind: "propertyType",
-  $id: "https://blockprotocol.org/@alice/types/property-type/username/v/1",
+  $id: "http://example.com/types/property-type/username/v/1",
   title: "Username",
   oneOf: [
     {

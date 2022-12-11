@@ -1,6 +1,8 @@
 import {
   Entity,
   EntityEditionId,
+  isHasRightEntityEdge,
+  isOutgoingLinkEdge,
   OutwardEdge,
   Subgraph,
 } from "@blockprotocol/graph";
@@ -160,7 +162,7 @@ const mapGraphEdgeToEChartEdge = (
   edgeKind: OutwardEdge["kind"],
 ): EChartEdge => ({
   /** @todo - Can we do better than this, this assumes that this triple is unique, which it might not be */
-  id: `${JSON.stringify(targetEditionId)}-${edgeKind}->${JSON.stringify(
+  id: `${JSON.stringify(sourceEditionId)}-${edgeKind}->${JSON.stringify(
     targetEditionId,
   )}`,
   source: JSON.stringify(sourceEditionId),
@@ -210,31 +212,37 @@ const getSubgraphEdgesAsEChartEdges = (subgraph: Subgraph): EChartEdge[] =>
         });
 
         return sourceVersions.flatMap((sourceVersion) =>
-          targetVersions.flatMap((targetVersion) => {
-            const sourceEditionId = {
-              baseId: sourceBaseId,
-              versionId: sourceVersion,
-            };
+          targetVersions
+            .flatMap((targetVersion) => {
+              const sourceEditionId = {
+                baseId: sourceBaseId,
+                versionId: sourceVersion,
+              };
 
-            const targetEditionId = {
-              baseId: sourceBaseId,
-              versionId: targetVersion,
-            };
+              const targetEditionId = {
+                baseId: outwardEdge.rightEndpoint.baseId,
+                versionId: targetVersion,
+              };
 
-            if (outwardEdge.reversed) {
-              return mapGraphEdgeToEChartEdge(
-                targetEditionId,
-                sourceEditionId,
-                outwardEdge.kind,
-              );
-            } else {
-              return mapGraphEdgeToEChartEdge(
-                sourceEditionId,
-                targetEditionId,
-                outwardEdge.kind,
-              );
-            }
-          }),
+              if (isOutgoingLinkEdge(outwardEdge)) {
+                return mapGraphEdgeToEChartEdge(
+                  sourceEditionId,
+                  targetEditionId,
+                  outwardEdge.kind,
+                );
+              } else if (isHasRightEntityEdge(outwardEdge)) {
+                return mapGraphEdgeToEChartEdge(
+                  sourceEditionId,
+                  targetEditionId,
+                  outwardEdge.kind,
+                );
+              }
+              return undefined;
+            })
+            .filter(
+              (edge: EChartEdge | undefined): edge is EChartEdge =>
+                edge !== undefined,
+            ),
         );
       });
     });
@@ -303,8 +311,9 @@ export const DatastoreGraphVisualisation = () => {
     if (chart && selectedEntityEditionIdString) {
       const outgoingLinkAndTargetEntities = getOutgoingLinkAndTargetEntities(
         graph,
-        selectedEntityEditionIdString,
+        (JSON.parse(selectedEntityEditionIdString) as EntityEditionId).baseId,
       );
+
       const neighbourIds = outgoingLinkAndTargetEntities.flatMap(
         ({ linkEntity, rightEntity }) => [
           JSON.stringify(linkEntity.metadata.editionId),

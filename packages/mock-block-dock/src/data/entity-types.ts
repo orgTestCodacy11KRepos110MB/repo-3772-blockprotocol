@@ -99,4 +99,5 @@ export const entityTypes = {
   company,
   person,
   worksFor: founderOf,
-} satisfies Record<string, EntityType>;
+};
+// satisfies Record<string, EntityType> };

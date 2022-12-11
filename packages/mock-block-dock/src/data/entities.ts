@@ -1,5 +1,8 @@
 import { Entity } from "@blockprotocol/graph";
+import { extractBaseUri } from "@blockprotocol/type-system/slim";
 
+import { entityTypes } from "./entity-types";
+import { propertyTypes } from "./property-types";
 import { companyNames, personNames } from "./words";
 
 const entities: Entity[] = [];
@@ -10,33 +13,39 @@ const NUMBER_OF_ENTITIES_TO_CREATE = Math.min(
 );
 
 const createPerson = (entityId: number): Entity => {
-  const now = new Date();
   const name = personNames[entityId] ?? "Unknown Person";
   return {
-    entityId: `person-${entityId.toString()}`,
-    entityTypeId: "Person",
+    metadata: {
+      editionId: {
+        baseId: `person-${entityId.toString()}`,
+        versionId: new Date().toISOString(),
+      },
+      entityTypeId: entityTypes.person.$id,
+    },
     properties: {
-      createdAt: now,
-      updatedAt: now,
-      age: Math.ceil(Math.random() * 100),
-      email: `${name}@example.com`,
-      name,
-      username: name.toLowerCase(),
+      [extractBaseUri(propertyTypes.age.$id)]: Math.ceil(Math.random() * 100),
+      [extractBaseUri(propertyTypes.email.$id)]: `${name}@example.com`,
+      [extractBaseUri(propertyTypes.name.$id)]: name,
+      [extractBaseUri(propertyTypes.username.$id)]: name.toLowerCase(),
     },
   };
 };
 
 const createCompany = (entityId: number): Entity => {
-  const now = new Date();
-  const name = companyNames[entityId];
+  const name = companyNames[entityId] ?? "Unknown Company";
   return {
-    entityId: `company-${entityId.toString()}`,
-    entityTypeId: "Company",
+    metadata: {
+      editionId: {
+        baseId: `company-${entityId.toString()}`,
+        versionId: new Date().toISOString(),
+      },
+      entityTypeId: entityTypes.company.$id,
+    },
     properties: {
-      createdAt: now,
-      updatedAt: now,
-      employees: Math.ceil(Math.random() * 10_000),
-      name,
+      [extractBaseUri(propertyTypes.numberOfEmployees.$id)]: Math.ceil(
+        Math.random() * 10_000,
+      ),
+      [extractBaseUri(propertyTypes.name.$id)]: name,
     },
   };
 };

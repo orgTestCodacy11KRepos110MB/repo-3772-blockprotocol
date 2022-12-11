@@ -1,52 +1,55 @@
 import { EntityType } from "@blockprotocol/graph";
+import { extractBaseUri } from "@blockprotocol/type-system/slim";
 
-export const entityTypes: EntityType[] = [
-  {
+import { propertyTypes } from "./property-types";
+
+export const entityTypes = {
+  company: {
     kind: "entityType",
     $id: "https://example.com/types/entity-type/company/v/1",
     type: "object",
     title: "Company",
     description: "A company or organization.",
     properties: {
-      "https://example.com/types/property-type/employees/": {
-        $ref: "https://example.com/types/property-type/employees/v/1",
+      [extractBaseUri(propertyTypes.numberOfEmployees.$id)]: {
+        $ref: propertyTypes.numberOfEmployees.$id,
       },
-      "https://example.com/types/property-type/name/": {
-        $ref: "https://example.com/types/property-type/name/v/1",
+      [extractBaseUri(propertyTypes.name.$id)]: {
+        $ref: propertyTypes.name.$id,
       },
     },
     required: [
-      "https://example.com/types/property-type/employees/",
-      "https://example.com/types/property-type/name/",
+      extractBaseUri(propertyTypes.numberOfEmployees.$id),
+      extractBaseUri(propertyTypes.name.$id),
     ],
     links: {},
   },
-  {
+  person: {
     kind: "entityType",
     $id: "https://example.com/types/entity-type/person/v/1",
     type: "object",
     title: "Person",
     description: "A human person.",
     properties: {
-      "https://example.com/types/property-type/age/": {
-        $ref: "https://example.com/types/property-type/age/v/1",
+      [extractBaseUri(propertyTypes.age.$id)]: {
+        $ref: propertyTypes.age.$id,
       },
-      "https://example.com/types/property-type/email/": {
-        $ref: "https://example.com/types/property-type/email/v/1",
+      [extractBaseUri(propertyTypes.email.$id)]: {
+        $ref: propertyTypes.email.$id,
       },
-      "https://example.com/types/property-type/name/": {
-        $ref: "https://example.com/types/property-type/name/v/1",
+      [extractBaseUri(propertyTypes.name.$id)]: {
+        $ref: propertyTypes.name.$id,
       },
-      "https://example.com/types/property-type/username/": {
-        $ref: "https://example.com/types/property-type/username/v/1",
+      [extractBaseUri(propertyTypes.username.$id)]: {
+        $ref: propertyTypes.username.$id,
       },
     },
     required: [
-      "https://example.com/types/property-type/age/",
-      "https://example.com/types/property-type/email/",
-      "https://example.com/types/property-type/name/",
-      "https://example.com/types/property-type/username/",
+      extractBaseUri(propertyTypes.age.$id),
+      extractBaseUri(propertyTypes.email.$id),
+      extractBaseUri(propertyTypes.name.$id),
+      extractBaseUri(propertyTypes.username.$id),
     ],
     links: {},
   },
-];
+} satisfies Record<string, EntityType>;

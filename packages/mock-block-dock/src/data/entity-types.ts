@@ -94,10 +94,26 @@ const person: EntityType = {
     },
   },
 };
+const testType: EntityType = {
+  kind: "entityType",
+  $id: "https://example.com/types/entity-type/company/v/1",
+  type: "object",
+  title: "Test Type",
+  description: "A Type for Testing",
+  properties: {
+    [extractBaseUri(propertyTypes.name.$id)]: {
+      $ref: propertyTypes.name.$id,
+    },
+  },
+  required: [extractBaseUri(propertyTypes.name.$id)],
+  links: {},
+};
 
 export const entityTypes = {
   company,
   person,
-  worksFor: founderOf,
+  worksFor,
+  founderOf,
+  testType,
 };
 // satisfies Record<string, EntityType> };

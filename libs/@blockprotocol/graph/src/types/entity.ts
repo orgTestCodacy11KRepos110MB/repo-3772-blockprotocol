@@ -1,7 +1,7 @@
 import { JsonValue } from "@blockprotocol/core";
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system/slim";
 
-import { isOntologyTypeEditionId } from "../types.js";
+import { isOntologyTypeRecordId } from "../types.js";
 import { Subgraph, SubgraphRootTypes } from "./subgraph.js";
 import { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 
@@ -9,23 +9,23 @@ import { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 /** @todo - Add documentation for these if we keep them */
 export type EntityId = string;
 export type EntityVersion = string;
-export type EntityEditionId = {
+export type EntityRecordId = {
   baseId: EntityId;
   versionId: EntityVersion;
 };
 
-export const isEntityEditionId = (
-  editionId: unknown,
-): editionId is EntityEditionId => {
+export const isEntityRecordId = (
+  recordId: unknown,
+): recordId is EntityRecordId => {
   return (
-    editionId != null &&
-    typeof editionId === "object" &&
-    "baseId" in editionId &&
-    "versionId" in editionId &&
+    recordId != null &&
+    typeof recordId === "object" &&
+    "baseId" in recordId &&
+    "versionId" in recordId &&
     /** @todo - is it fine to just check that versionId is string, maybe timestamp if we want to lock it into being a
      *    timestamp?
      */
-    !isOntologyTypeEditionId(editionId)
+    !isOntologyTypeRecordId(recordId)
   );
 };
 
@@ -39,7 +39,7 @@ export type EntityPropertiesObject = {
 };
 
 export type EntityMetadata = {
-  editionId: EntityEditionId;
+  recordId: EntityRecordId;
   entityTypeId: VersionedUri;
 };
 

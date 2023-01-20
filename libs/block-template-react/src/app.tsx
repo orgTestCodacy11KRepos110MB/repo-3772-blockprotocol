@@ -64,7 +64,7 @@ export const App: BlockComponent<RootEntity> = ({
     RootEntityLinkedEntities
   >(blockEntitySubgraph);
 
-  const entityId = blockEntity.metadata.editionId.baseId;
+  const entityId = blockEntity.metadata.recordId.baseId;
 
   const simpleBlockEntity = addSimpleAccessors(blockEntity);
 

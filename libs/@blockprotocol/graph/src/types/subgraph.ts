@@ -4,6 +4,7 @@ import { EntityTypeWithMetadata } from "./ontology/entity-type.js";
 import { PropertyTypeWithMetadata } from "./ontology/property-type.js";
 import { Edges } from "./subgraph/edges.js";
 import { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
+import { SubgraphTemporalAxes } from "./subgraph/temporal-axes";
 import {
   EntityVertexId,
   OntologyTypeVertexId,
@@ -13,6 +14,7 @@ import {
 export * from "./ontology.js";
 export * from "./subgraph/edges.js";
 export * from "./subgraph/graph-resolve-depths.js";
+export * from "./subgraph/temporal-axes.js";
 export * from "./subgraph/vertices.js";
 
 export type SubgraphRootTypes = {
@@ -41,6 +43,7 @@ export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
   vertices: Vertices;
   edges: Edges;
   depths: GraphResolveDepths;
+  temporalAxes: SubgraphTemporalAxes;
 };
 
 export type EntityRootedSubgraph = Subgraph<SubgraphRootTypes["entity"]>;

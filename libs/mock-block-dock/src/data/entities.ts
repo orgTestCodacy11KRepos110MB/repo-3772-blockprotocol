@@ -1,11 +1,14 @@
-import { Entity } from "@blockprotocol/graph";
+import { Entity, EntityTemporalVersioningMetadata } from "@blockprotocol/graph";
 import { extractBaseUri } from "@blockprotocol/type-system/slim";
 
 import { entityTypes } from "./entity-types";
 import { propertyTypes } from "./property-types";
 import { companyNames, personNames } from "./words";
 
-const createPerson = (entityId: number): Entity => {
+const createPerson = (
+  entityId: number,
+  temporalVersioningMetadata: EntityTemporalVersioningMetadata,
+): Entity => {
   const name = personNames[entityId] ?? "Unknown Person";
   return {
     metadata: {
@@ -14,6 +17,7 @@ const createPerson = (entityId: number): Entity => {
         editionId: new Date().toISOString(),
       },
       entityTypeId: entityTypes.person.$id,
+      temporalVersioning: temporalVersioningMetadata,
     },
     properties: {
       [extractBaseUri(propertyTypes.age.$id)]: Math.ceil(Math.random() * 100),
@@ -24,7 +28,10 @@ const createPerson = (entityId: number): Entity => {
   };
 };
 
-const createCompany = (entityId: number): Entity => {
+const createCompany = (
+  entityId: number,
+  temporalVersioningMetadata: EntityTemporalVersioningMetadata,
+): Entity => {
   const name = companyNames[entityId] ?? "Unknown Company";
   return {
     metadata: {
@@ -33,6 +40,7 @@ const createCompany = (entityId: number): Entity => {
         editionId: new Date().toISOString(),
       },
       entityTypeId: entityTypes.company.$id,
+      temporalVersioning: temporalVersioningMetadata,
     },
     properties: {
       [extractBaseUri(propertyTypes.numberOfEmployees.$id)]: Math.ceil(
@@ -46,6 +54,7 @@ const createCompany = (entityId: number): Entity => {
 const createWorksForLink = (
   sourceEntityId: string,
   destinationEntityId: string,
+  temporalVersioningMetadata: EntityTemporalVersioningMetadata,
 ): Entity => {
   return {
     metadata: {
@@ -54,6 +63,7 @@ const createWorksForLink = (
         editionId: new Date().toISOString(),
       },
       entityTypeId: entityTypes.worksFor.$id,
+      temporalVersioning: temporalVersioningMetadata,
     },
     properties: {},
     linkData: {
@@ -66,6 +76,7 @@ const createWorksForLink = (
 const createFounderOfLink = (
   sourceEntityId: string,
   destinationEntityId: string,
+  temporalVersioningMetadata: EntityTemporalVersioningMetadata,
 ): Entity => {
   return {
     metadata: {
@@ -74,6 +85,7 @@ const createFounderOfLink = (
         editionId: new Date().toISOString(),
       },
       entityTypeId: entityTypes.founderOf.$id,
+      temporalVersioning: temporalVersioningMetadata,
     },
     properties: {},
     linkData: {
@@ -88,11 +100,27 @@ const createEntities = (): Entity[] => {
   const people = [];
   const companies = [];
 
+  // Create them all with the same temporal versioning ranges, where both axes are the interval [UTC epoch, now)
+  const interval = {
+    start: {
+      kind: "inclusive",
+      limit: new Date(0).toISOString(),
+    },
+    end: {
+      kind: "exclusive",
+      limit: new Date().toISOString(),
+    },
+  } as const;
+  const temporalVersioningMetadata: EntityTemporalVersioningMetadata = {
+    transactionTime: interval,
+    decisionTime: interval,
+  };
+
   for (let idx = 0; idx < personNames.length; idx++) {
-    people.push(createPerson(idx));
+    people.push(createPerson(idx, temporalVersioningMetadata));
   }
   for (let idx = 0; idx < companyNames.length; idx++) {
-    companies.push(createCompany(idx));
+    companies.push(createCompany(idx, temporalVersioningMetadata));
   }
 
   const entities = [];
@@ -107,6 +135,7 @@ const createEntities = (): Entity[] => {
         createFounderOfLink(
           founder.metadata.recordId.entityId,
           company.metadata.recordId.entityId,
+          temporalVersioningMetadata,
         ),
       );
       entities.push(founder);
@@ -118,6 +147,7 @@ const createEntities = (): Entity[] => {
         person.metadata.recordId.entityId,
         companies[Math.floor(Math.random() * companies.length)]!.metadata
           .recordId.entityId,
+        temporalVersioningMetadata,
       ),
     );
   }

@@ -1,7 +1,13 @@
 import { JsonValue } from "@blockprotocol/core";
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system/slim";
 
-import { Timestamp } from "../types.js";
+import {
+  ExclusiveTimestampLimitedTemporalBound,
+  InclusiveTimestampLimitedTemporalBound,
+  TemporalAxes,
+  TimeInterval,
+  Timestamp,
+} from "../types.js";
 import { Subgraph, SubgraphRootTypes } from "./subgraph.js";
 import { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 
@@ -37,9 +43,20 @@ export type EntityPropertiesObject = {
   [_: BaseUri]: EntityPropertyValue;
 };
 
+type HalfClosedInterval = TimeInterval<
+  InclusiveTimestampLimitedTemporalBound,
+  ExclusiveTimestampLimitedTemporalBound
+>;
+
+export type EntityTemporalVersioningMetadata = Record<
+  TemporalAxes,
+  HalfClosedInterval
+>;
+
 export type EntityMetadata = {
   recordId: EntityRecordId;
   entityTypeId: VersionedUri;
+  temporalVersioning: EntityTemporalVersioningMetadata;
 };
 
 export type LinkData = {

@@ -7,6 +7,7 @@ import {
 import { getEntities } from "@blockprotocol/graph/stdlib";
 
 import { filterAndSortEntitiesOrTypes } from "../../../util";
+import { resolveTemporalAxes } from "../../resolve-temporal-axes";
 import { traverseElement } from "../../traverse";
 import { TraversalContext } from "../../traverse/traversal-context";
 
@@ -17,36 +18,44 @@ export const aggregateEntities = (
       hasLeftEntity: { incoming: 1, outgoing: 1 },
       hasRightEntity: { incoming: 1, outgoing: 1 },
     },
+    temporalAxes,
   }: AggregateEntitiesData,
   graph: Subgraph,
 ): AggregateEntitiesResult<Subgraph<SubgraphRootTypes["entity"]>> => {
+  const resolvedTemporalAxes = resolveTemporalAxes(temporalAxes);
+
   const { results, operation: appliedOperation } = filterAndSortEntitiesOrTypes(
     getEntities(graph),
     {
       operation,
+      temporalAxes: resolvedTemporalAxes,
     },
   );
 
   const subgraph = {
-    /** @todo - This is temporary, and wrong */
     roots: results.map((entity) => ({
       baseId: entity.metadata.recordId.entityId,
-      revisionId: entity.metadata.recordId.editionId,
+      revisionId:
+        entity.metadata.temporalVersioning[temporalAxes.pinned.axis].start
+          .limit,
     })),
     vertices: {},
     edges: {},
     depths: graphResolveDepths,
+    temporalAxes: {
+      initial: temporalAxes,
+      resolved: resolvedTemporalAxes,
+    },
   };
 
   for (const {
-    metadata: { recordId },
+    metadata: { recordId, temporalVersioning },
   } of results) {
     traverseElement(
       subgraph,
-      /** @todo - This is temporary, and wrong */
       {
         baseId: recordId.entityId,
-        revisionId: recordId.editionId,
+        revisionId: temporalVersioning[temporalAxes.pinned.axis].start.limit,
       },
       graph,
       new TraversalContext(graph),

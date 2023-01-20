@@ -7,6 +7,7 @@ import {
   EntityType,
   MultiFilter,
   MultiSort,
+  ResolvedQueryTemporalAxes,
   Subgraph,
   SubgraphRootTypes,
 } from "@blockprotocol/graph";
@@ -197,7 +198,9 @@ export type FilterResult<T extends Entity | EntityType = Entity | EntityType> =
 
 export function filterAndSortEntitiesOrTypes(
   entities: Entity[],
-  payload: AggregateEntitiesData,
+  payload: Omit<AggregateEntitiesData, "temporalAxes"> & {
+    temporalAxes: ResolvedQueryTemporalAxes;
+  },
 ): FilterResult<Entity>;
 export function filterAndSortEntitiesOrTypes(
   entities: EntityType[],
@@ -205,7 +208,11 @@ export function filterAndSortEntitiesOrTypes(
 ): FilterResult<EntityType>;
 export function filterAndSortEntitiesOrTypes(
   entities: Entity[] | EntityType[],
-  payload: AggregateEntitiesData | AggregateEntityTypesData,
+  payload:
+    | (Omit<AggregateEntitiesData, "temporalAxes"> & {
+        temporalAxes: ResolvedQueryTemporalAxes;
+      })
+    | AggregateEntityTypesData,
 ): FilterResult {
   const { operation } = payload;
 

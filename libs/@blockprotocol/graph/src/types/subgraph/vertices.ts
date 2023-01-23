@@ -1,6 +1,12 @@
 import { BaseUri, validateBaseUri } from "@blockprotocol/type-system/slim";
 
-import { Entity, EntityId, EntityRevisionId } from "../entity.js";
+import {
+  Entity,
+  EntityId,
+  EntityPropertiesObject,
+  EntityPropertyValue,
+  EntityRevisionId,
+} from "../entity.js";
 import { isOntologyTypeRecordId } from "../ontology.js";
 import { DataTypeWithMetadata } from "../ontology/data-type.js";
 import { EntityTypeWithMetadata } from "../ontology/entity-type.js";
@@ -21,16 +27,34 @@ export type EntityTypeVertex = {
   inner: EntityTypeWithMetadata;
 };
 
-export type EntityVertex = { kind: "entity"; inner: Entity };
+export type EntityVertex<
+  TemporalSupport extends boolean = false,
+  Properties extends EntityPropertiesObject | null = Record<
+    BaseUri,
+    EntityPropertyValue
+  >,
+> = { kind: "entity"; inner: Entity<TemporalSupport, Properties> };
 
 export type OntologyVertex =
   | DataTypeVertex
   | PropertyTypeVertex
   | EntityTypeVertex;
 
-export type KnowledgeGraphVertex = EntityVertex;
+export type KnowledgeGraphVertex<
+  TemporalSupport extends boolean = false,
+  Properties extends EntityPropertiesObject | null = Record<
+    BaseUri,
+    EntityPropertyValue
+  >,
+> = EntityVertex<TemporalSupport, Properties>;
 
-export type Vertex = OntologyVertex | KnowledgeGraphVertex;
+export type Vertex<
+  TemporalSupport extends boolean = false,
+  Properties extends EntityPropertiesObject | null = Record<
+    BaseUri,
+    EntityPropertyValue
+  >,
+> = OntologyVertex | KnowledgeGraphVertex<TemporalSupport, Properties>;
 
 export const isDataTypeVertex = (vertex: Vertex): vertex is DataTypeVertex => {
   return vertex.kind === "dataType";
@@ -96,10 +120,11 @@ export type OntologyVertices = {
   };
 };
 
-export type KnowledgeGraphVertices = {
+export type KnowledgeGraphVertices<TemporalSupport extends boolean = false> = {
   [entityId: EntityId]: {
-    [entityVersion: EntityRevisionId]: KnowledgeGraphVertex;
+    [entityVersion: EntityRevisionId]: KnowledgeGraphVertex<TemporalSupport>;
   };
 };
 
-export type Vertices = OntologyVertices & KnowledgeGraphVertices;
+export type Vertices<TemporalSupport extends boolean = false> =
+  OntologyVertices & KnowledgeGraphVertices<TemporalSupport>;

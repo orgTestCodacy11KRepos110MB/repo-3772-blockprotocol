@@ -1,4 +1,4 @@
-import { Entity } from "./entity.js";
+import { Entity, EntityMetadata, EntityMetadataTemporal } from "./entity.js";
 import { DataTypeWithMetadata } from "./ontology/data-type.js";
 import { EntityTypeWithMetadata } from "./ontology/entity-type.js";
 import { PropertyTypeWithMetadata } from "./ontology/property-type.js";
@@ -38,19 +38,26 @@ export type SubgraphRootTypes = {
 
 export type SubgraphRootType = SubgraphRootTypes[keyof SubgraphRootTypes];
 
-export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
+export type Subgraph<
+  RootType extends SubgraphRootType = SubgraphRootType,
+  TemporalSupport extends boolean = false,
+> = {
   roots: RootType["vertexId"][];
-  vertices: Vertices;
+  vertices: Vertices<TemporalSupport>;
   edges: Edges;
   depths: GraphResolveDepths;
-  temporalAxes: SubgraphTemporalAxes;
-};
+} & (TemporalSupport extends false
+  ? {}
+  : {
+      temporalAxes: SubgraphTemporalAxes;
+    });
 
-export type EntityRootedSubgraph = Subgraph<SubgraphRootTypes["entity"]>;
-export type DataTypeRootedSubgraph = Subgraph<SubgraphRootTypes["dataType"]>;
-export type PropertyTypeRootedSubgraph = Subgraph<
-  SubgraphRootTypes["propertyType"]
->;
-export type EntityTypeRootedSubgraph = Subgraph<
-  SubgraphRootTypes["entityType"]
->;
+export type EntityRootedSubgraph<TemporalSupport extends boolean = false> =
+  Subgraph<SubgraphRootTypes["entity"], TemporalSupport>;
+export type DataTypeRootedSubgraph<TemporalSupport extends boolean = false> =
+  Subgraph<SubgraphRootTypes["dataType"], TemporalSupport>;
+export type PropertyTypeRootedSubgraph<
+  TemporalSupport extends boolean = false,
+> = Subgraph<SubgraphRootTypes["propertyType"], TemporalSupport>;
+export type EntityTypeRootedSubgraph<TemporalSupport extends boolean = false> =
+  Subgraph<SubgraphRootTypes["entityType"], TemporalSupport>;

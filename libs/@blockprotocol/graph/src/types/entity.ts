@@ -57,6 +57,9 @@ export type EntityTemporalVersioningMetadata = Record<
 export type EntityMetadata = {
   recordId: EntityRecordId;
   entityTypeId: VersionedUri;
+};
+
+export type EntityMetadataTemporal = EntityMetadata & {
   temporalVersioning: EntityTemporalVersioningMetadata;
 };
 
@@ -68,14 +71,19 @@ export type LinkData = {
 };
 
 export type Entity<
+  TemporalSupport extends boolean = false,
   Properties extends EntityPropertiesObject | null = Record<
     BaseUri,
     EntityPropertyValue
   >,
 > = {
-  metadata: EntityMetadata;
   linkData?: LinkData;
-} & (Properties extends null ? {} : { properties: Properties });
+} & (Properties extends null ? {} : { properties: Properties }) &
+  (TemporalSupport extends false
+    ? { metadata: EntityMetadata }
+    : {
+        metadata: EntityMetadataTemporal;
+      });
 
 export type LinkEntityAndRightEntity = {
   linkEntity: Entity;
@@ -91,6 +99,9 @@ export type CreateEntityData = {
 export type GetEntityData = {
   entityId: EntityId;
   graphResolveDepths?: GraphResolveDepths;
+};
+
+export type GetEntityDataTemporal = GetEntityData & {
   temporalAxes: UnresolvedQueryTemporalAxes;
 };
 
@@ -150,6 +161,9 @@ export type AggregateOperationInput = {
 export type AggregateEntitiesData = {
   operation: AggregateOperationInput;
   graphResolveDepths?: GraphResolveDepths;
+};
+
+export type AggregateEntitiesDataTemporal = AggregateEntitiesData & {
   temporalAxes: UnresolvedQueryTemporalAxes;
 };
 

@@ -15,9 +15,17 @@ import {
   AggregateEntityTypesResult,
   GetEntityTypeData,
 } from "./ontology/entity-type.js";
-import { EntityVertexId, Subgraph, SubgraphRootTypes } from "./subgraph.js";
+import {
+  EntityRootedSubgraph,
+  EntityTypeRootedSubgraph,
+  EntityVertexId,
+  Subgraph,
+} from "./subgraph.js";
 
-export type BlockGraphProperties<RootEntity extends Entity = Entity> = {
+export type BlockGraphProperties<
+  TemporalSupport extends boolean,
+  RootEntity extends Entity<TemporalSupport> = Entity<TemporalSupport>,
+> = {
   /**
    * The 'graph' object contains messages sent under the graph service from the app to the block.
    * They are sent on initialization and again when the application has new values to send.
@@ -25,31 +33,35 @@ export type BlockGraphProperties<RootEntity extends Entity = Entity> = {
    * @see https://blockprotocol.org/docs/spec/graph-service#message-definitions for a full list
    */
   graph: {
-    blockEntitySubgraph?: Subgraph<{
-      vertexId: EntityVertexId;
-      element: RootEntity;
-    }>;
+    blockEntitySubgraph?: Subgraph<
+      TemporalSupport,
+      {
+        vertexId: EntityVertexId;
+        element: RootEntity;
+      }
+    >;
     readonly?: boolean;
   };
 };
 
-export type BlockGraphMessageCallbacks = {
+export type BlockGraphMessageCallbacks<TemporalSupport extends boolean> = {
   blockEntitySubgraph: MessageCallback<
-    Subgraph<SubgraphRootTypes["entity"]>,
+    EntityRootedSubgraph<TemporalSupport>,
     null
   >;
   readonly: MessageCallback<boolean, null>;
 };
 
 export type EmbedderGraphMessages<
-  Key extends keyof BlockGraphMessageCallbacks = keyof BlockGraphMessageCallbacks,
+  TemporalSupport extends boolean,
+  Key extends keyof BlockGraphMessageCallbacks<TemporalSupport> = keyof BlockGraphMessageCallbacks<TemporalSupport>,
 > = {
   [key in Key]: ({
     data,
     errors,
-  }: Parameters<BlockGraphMessageCallbacks[key]>[0]) => ReturnType<
-    BlockGraphMessageCallbacks[key]
-  >;
+  }: Parameters<
+    BlockGraphMessageCallbacks<TemporalSupport>[key]
+  >[0]) => ReturnType<BlockGraphMessageCallbacks<TemporalSupport>[key]>;
 };
 
 export type CreateResourceError =
@@ -65,17 +77,17 @@ export type ReadOrModifyResourceError =
 /**
  * @todo Generate these types from the JSON definition, to avoid manually keeping the JSON and types in sync
  */
-export type EmbedderGraphMessageCallbacks = {
+export type EmbedderGraphMessageCallbacks<TemporalSupport extends boolean> = {
   createEntity: MessageCallback<
     CreateEntityData,
     null,
-    Entity,
+    Entity<TemporalSupport>,
     CreateResourceError
   >;
   updateEntity: MessageCallback<
     UpdateEntityData,
     null,
-    Entity,
+    Entity<TemporalSupport>,
     ReadOrModifyResourceError
   >;
   deleteEntity: MessageCallback<
@@ -85,15 +97,18 @@ export type EmbedderGraphMessageCallbacks = {
     ReadOrModifyResourceError
   >;
   getEntity: MessageCallback<
-    GetEntityData,
+    GetEntityData<TemporalSupport>,
     null,
-    Subgraph<SubgraphRootTypes["entity"]>,
+    EntityRootedSubgraph<TemporalSupport>,
     ReadOrModifyResourceError
   >;
   aggregateEntities: MessageCallback<
-    AggregateEntitiesData,
+    AggregateEntitiesData<TemporalSupport>,
     null,
-    AggregateEntitiesResult<Subgraph<SubgraphRootTypes["entity"]>>,
+    AggregateEntitiesResult<
+      TemporalSupport,
+      EntityRootedSubgraph<TemporalSupport>
+    >,
     ReadOrModifyResourceError
   >;
   /** @todo - Add Type System mutation methods */
@@ -118,13 +133,16 @@ export type EmbedderGraphMessageCallbacks = {
   getEntityType: MessageCallback<
     GetEntityTypeData,
     null,
-    Subgraph<SubgraphRootTypes["entityType"]>,
+    EntityTypeRootedSubgraph<TemporalSupport>,
     ReadOrModifyResourceError
   >;
   aggregateEntityTypes: MessageCallback<
     AggregateEntityTypesData,
     null,
-    AggregateEntityTypesResult<Subgraph<SubgraphRootTypes["entityType"]>>,
+    AggregateEntityTypesResult<
+      TemporalSupport,
+      EntityTypeRootedSubgraph<TemporalSupport>
+    >,
     ReadOrModifyResourceError
   >;
   /** @todo - Reimplement linked aggregations */
@@ -161,12 +179,13 @@ export type EmbedderGraphMessageCallbacks = {
 };
 
 export type BlockGraphMessages<
-  Key extends keyof EmbedderGraphMessageCallbacks = keyof EmbedderGraphMessageCallbacks,
+  TemporalSupport extends boolean,
+  Key extends keyof EmbedderGraphMessageCallbacks<TemporalSupport> = keyof EmbedderGraphMessageCallbacks<TemporalSupport>,
 > = {
   [key in Key]: ({
     data,
     errors,
-  }: Parameters<EmbedderGraphMessageCallbacks[key]>[0]) => ReturnType<
-    EmbedderGraphMessageCallbacks[key]
-  >;
+  }: Parameters<
+    EmbedderGraphMessageCallbacks<TemporalSupport>[key]
+  >[0]) => ReturnType<EmbedderGraphMessageCallbacks<TemporalSupport>[key]>;
 };

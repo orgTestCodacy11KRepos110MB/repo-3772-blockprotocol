@@ -1,11 +1,11 @@
-import { addEntitiesToSubgraphByMutation } from "../../internal/mutate-subgraph.js";
 import {
   Entity,
   EntityRecordId,
   GraphResolveDepths,
   ResolvedQueryTemporalAxes,
   Subgraph,
-} from "../../types.js";
+} from "../../index.js";
+import { addEntitiesToSubgraphByMutation } from "../../internal/mutate-subgraph.js";
 
 /**
  * Builds a Subgraph from a given set of entities, some (or all) of which may be 'link entities' –
@@ -39,11 +39,13 @@ import {
  *
  * @todo add support for ontology vertices (e.g. entity types)
  */
-export const buildSubgraph = (
-  data: { entities: Entity[] },
+export const buildSubgraph = <TemporalSupport extends boolean>(
+  data: { entities: Entity<TemporalSupport>[] },
   rootRecordIds: EntityRecordId[],
   depths: GraphResolveDepths,
-  temporalAxes: ResolvedQueryTemporalAxes,
+  temporalAxes: TemporalSupport extends true
+    ? ResolvedQueryTemporalAxes
+    : undefined,
 ) => {
   const missingRoots = rootRecordIds.filter(
     ({ entityId, editionId }) =>
@@ -65,27 +67,24 @@ export const buildSubgraph = (
     );
   }
 
-  if (data.entities.length === 0 && temporalAxes === undefined) {
-    throw new Error(
-      "Unable to infer a valid set of temporal axes as there were no entities provided to be ",
-    );
-  }
-
   const roots = rootRecordIds.map((rootRecordId) => ({
     baseId: rootRecordId.entityId,
     /** @todo - This is temporary, and wrong */
     revisionId: rootRecordId.editionId,
   }));
 
-  const subgraph: Subgraph = {
+  const subgraph: Subgraph<TemporalSupport> = {
     roots,
     vertices: {},
     edges: {},
     depths,
-    temporalAxes: {
-      initial: temporalAxes,
-      resolved: temporalAxes,
-    },
+    temporalAxes:
+      temporalAxes !== undefined
+        ? {
+            initial: temporalAxes,
+            resolved: temporalAxes,
+          }
+        : undefined,
   };
 
   addEntitiesToSubgraphByMutation(subgraph, data.entities);

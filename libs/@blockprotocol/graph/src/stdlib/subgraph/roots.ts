@@ -1,9 +1,12 @@
 import {
+  DataTypeRootedSubgraph,
+  EntityRootedSubgraph,
+  EntityTypeRootedSubgraph,
   isEntityVertexId,
   isOntologyTypeVertexId,
+  PropertyTypeRootedSubgraph,
   Subgraph,
   SubgraphRootType,
-  SubgraphRootTypes,
 } from "../../types/subgraph.js";
 import { Vertex } from "../../types/subgraph/vertices.js";
 import { mustBeDefined } from "../must-be-defined.js";
@@ -23,8 +26,11 @@ import { getPropertyTypeByVertexId } from "./element/property-type.js";
  *
  * @param subgraph
  */
-export const getRoots = <RootType extends SubgraphRootType>(
-  subgraph: Subgraph<RootType>,
+export const getRoots = <
+  TemporalSupport extends boolean,
+  RootType extends SubgraphRootType<TemporalSupport>,
+>(
+  subgraph: Subgraph<TemporalSupport, RootType>,
 ): RootType["element"][] =>
   subgraph.roots.map((rootVertexId) => {
     const root = mustBeDefined(
@@ -50,9 +56,9 @@ export const getRoots = <RootType extends SubgraphRootType>(
  *
  * @param subgraph
  */
-export const isDataTypeRootedSubgraph = (
-  subgraph: Subgraph,
-): subgraph is Subgraph<SubgraphRootTypes["dataType"]> => {
+export const isDataTypeRootedSubgraph = <TemporalSupport extends boolean>(
+  subgraph: Subgraph<TemporalSupport>,
+): subgraph is DataTypeRootedSubgraph<TemporalSupport> => {
   for (const rootVertexId of subgraph.roots) {
     if (!isOntologyTypeVertexId(rootVertexId)) {
       return false;
@@ -77,9 +83,9 @@ export const isDataTypeRootedSubgraph = (
  *
  * @param subgraph
  */
-export const isPropertyTypeRootedSubgraph = (
-  subgraph: Subgraph,
-): subgraph is Subgraph<SubgraphRootTypes["propertyType"]> => {
+export const isPropertyTypeRootedSubgraph = <TemporalSupport extends boolean>(
+  subgraph: Subgraph<TemporalSupport>,
+): subgraph is PropertyTypeRootedSubgraph<TemporalSupport> => {
   for (const rootVertexId of subgraph.roots) {
     if (!isOntologyTypeVertexId(rootVertexId)) {
       return false;
@@ -104,9 +110,9 @@ export const isPropertyTypeRootedSubgraph = (
  *
  * @param subgraph
  */
-export const isEntityTypeRootedSubgraph = (
-  subgraph: Subgraph,
-): subgraph is Subgraph<SubgraphRootTypes["entityType"]> => {
+export const isEntityTypeRootedSubgraph = <TemporalSupport extends boolean>(
+  subgraph: Subgraph<TemporalSupport>,
+): subgraph is EntityTypeRootedSubgraph<TemporalSupport> => {
   for (const rootVertexId of subgraph.roots) {
     if (!isOntologyTypeVertexId(rootVertexId)) {
       return false;
@@ -131,9 +137,9 @@ export const isEntityTypeRootedSubgraph = (
  *
  * @param subgraph
  */
-export const isEntityRootedSubgraph = (
-  subgraph: Subgraph,
-): subgraph is Subgraph<SubgraphRootTypes["entity"]> => {
+export const isEntityRootedSubgraph = <TemporalSupport extends boolean>(
+  subgraph: Subgraph<TemporalSupport>,
+): subgraph is EntityRootedSubgraph<TemporalSupport> => {
   for (const rootVertexId of subgraph.roots) {
     if (!isEntityVertexId(rootVertexId)) {
       return false;

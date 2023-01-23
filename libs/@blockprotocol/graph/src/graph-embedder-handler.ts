@@ -5,20 +5,19 @@ import { ServiceHandler } from "@blockprotocol/core";
 import {
   EmbedderGraphMessageCallbacks,
   EmbedderGraphMessages,
-  Subgraph,
-  SubgraphRootTypes,
-} from "./types.js";
+  EntityRootedSubgraph,
+} from "./index.js";
 
 /**
  * Creates a handler for the graph service for the embedder.
  * Register callbacks in the constructor or afterwards using the 'on' method to react to messages from the block.
  * Call the relevant methods to send messages to the block.
  */
-export class GraphEmbedderHandler
+export class GraphEmbedderHandler<TemporalSupport extends boolean>
   extends ServiceHandler
-  implements EmbedderGraphMessages
+  implements EmbedderGraphMessages<TemporalSupport>
 {
-  private _blockEntitySubgraph?: Subgraph<SubgraphRootTypes["entity"]>;
+  private _blockEntitySubgraph?: EntityRootedSubgraph<TemporalSupport>;
   // private _linkedAggregations?: LinkedAggregations;
   private _readonly?: boolean;
 
@@ -29,8 +28,8 @@ export class GraphEmbedderHandler
     // linkedAggregations,
     readonly,
   }: {
-    blockEntitySubgraph?: Subgraph<SubgraphRootTypes["entity"]>;
-    callbacks?: Partial<EmbedderGraphMessageCallbacks>;
+    blockEntitySubgraph?: EntityRootedSubgraph<TemporalSupport>;
+    callbacks?: Partial<EmbedderGraphMessageCallbacks<TemporalSupport>>;
     element: HTMLElement;
     // linkedAggregations?: LinkedAggregations;
     readonly?: boolean;
@@ -49,7 +48,9 @@ export class GraphEmbedderHandler
    * Registers multiple callbacks at once.
    * Useful for bulk updates to callbacks after the service is first initialised.
    */
-  registerCallbacks(callbacks: Partial<EmbedderGraphMessageCallbacks>) {
+  registerCallbacks(
+    callbacks: Partial<EmbedderGraphMessageCallbacks<TemporalSupport>>,
+  ) {
     super.registerCallbacks(callbacks);
   }
 
@@ -59,10 +60,12 @@ export class GraphEmbedderHandler
    * @param messageName the message name to listen for
    * @param handlerFunction the function to call when the message is received, with the message data / errors
    */
-  on<K extends keyof EmbedderGraphMessageCallbacks>(
-    this: GraphEmbedderHandler,
+  on<K extends keyof EmbedderGraphMessageCallbacks<TemporalSupport>>(
+    this: GraphEmbedderHandler<TemporalSupport>,
     messageName: K,
-    handlerFunction: NonNullable<EmbedderGraphMessageCallbacks[K]>,
+    handlerFunction: NonNullable<
+      EmbedderGraphMessageCallbacks<TemporalSupport>[K]
+    >,
   ) {
     // @todo restore this when module resolution issue resolved
     // @see https://app.asana.com/0/1202542409311090/1202614421149286/f
@@ -83,7 +86,9 @@ export class GraphEmbedderHandler
     });
   }
 
-  getInitPayload(this: GraphEmbedderHandler): Record<string, any> {
+  getInitPayload(
+    this: GraphEmbedderHandler<TemporalSupport>,
+  ): Record<string, any> {
     return {
       blockEntitySubgraph: this._blockEntitySubgraph,
       // linkedAggregations: this._linkedAggregations,
@@ -94,7 +99,7 @@ export class GraphEmbedderHandler
   blockEntitySubgraph({
     data,
   }: {
-    data?: Subgraph<SubgraphRootTypes["entity"]>;
+    data?: EntityRootedSubgraph<TemporalSupport>;
   }) {
     this._blockEntitySubgraph = data;
     this.sendMessage({

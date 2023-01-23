@@ -1,5 +1,5 @@
 import { AggregateEntitiesResult, AggregateOperationInput } from "./entity.js";
-import { Subgraph, SubgraphRootTypes } from "./subgraph.js";
+import { EntityRootedSubgraph } from "./subgraph.js";
 
 export type LinkedAggregationDefinition = {
   aggregationId: string;
@@ -8,8 +8,14 @@ export type LinkedAggregationDefinition = {
   operation: AggregateOperationInput;
 };
 
-export type LinkedAggregation = Omit<LinkedAggregationDefinition, "operation"> &
-  AggregateEntitiesResult<Subgraph<SubgraphRootTypes["entity"]>>;
+export type LinkedAggregation<TemporalSupport extends boolean> = Omit<
+  LinkedAggregationDefinition,
+  "operation"
+> &
+  AggregateEntitiesResult<
+    TemporalSupport,
+    EntityRootedSubgraph<TemporalSupport>
+  >;
 
 export type GetLinkedAggregationData = {
   aggregationId: string;

@@ -17,7 +17,7 @@ export * from "./subgraph/graph-resolve-depths.js";
 export * from "./subgraph/temporal-axes.js";
 export * from "./subgraph/vertices.js";
 
-export type SubgraphRootTypes = {
+export type SubgraphRootTypes<TemporalSupport extends boolean> = {
   dataType: {
     vertexId: OntologyTypeVertexId;
     element: DataTypeWithMetadata;
@@ -32,25 +32,36 @@ export type SubgraphRootTypes = {
   };
   entity: {
     vertexId: EntityVertexId;
-    element: Entity;
+    element: Entity<TemporalSupport>;
   };
 };
 
-export type SubgraphRootType = SubgraphRootTypes[keyof SubgraphRootTypes];
+export type SubgraphRootType<TemporalSupport extends boolean> =
+  SubgraphRootTypes<TemporalSupport>[keyof SubgraphRootTypes<TemporalSupport>];
 
-export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
+export type Subgraph<
+  TemporalSupport extends boolean,
+  RootType extends SubgraphRootType<TemporalSupport> = SubgraphRootType<TemporalSupport>,
+> = {
   roots: RootType["vertexId"][];
-  vertices: Vertices;
+  vertices: Vertices<TemporalSupport>;
   edges: Edges;
   depths: GraphResolveDepths;
-  temporalAxes: SubgraphTemporalAxes;
-};
+} & (TemporalSupport extends true
+  ? {
+      temporalAxes: SubgraphTemporalAxes;
+    }
+  : {});
 
-export type EntityRootedSubgraph = Subgraph<SubgraphRootTypes["entity"]>;
-export type DataTypeRootedSubgraph = Subgraph<SubgraphRootTypes["dataType"]>;
-export type PropertyTypeRootedSubgraph = Subgraph<
-  SubgraphRootTypes["propertyType"]
+export type EntityRootedSubgraph<TemporalSupport extends boolean> = Subgraph<
+  TemporalSupport,
+  SubgraphRootTypes<TemporalSupport>["entity"]
 >;
-export type EntityTypeRootedSubgraph = Subgraph<
-  SubgraphRootTypes["entityType"]
+export type DataTypeRootedSubgraph<TemporalSupport extends boolean> = Subgraph<
+  TemporalSupport,
+  SubgraphRootTypes<TemporalSupport>["dataType"]
 >;
+export type PropertyTypeRootedSubgraph<TemporalSupport extends boolean> =
+  Subgraph<TemporalSupport, SubgraphRootTypes<TemporalSupport>["propertyType"]>;
+export type EntityTypeRootedSubgraph<TemporalSupport extends boolean> =
+  Subgraph<TemporalSupport, SubgraphRootTypes<TemporalSupport>["entityType"]>;

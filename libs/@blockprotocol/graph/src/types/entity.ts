@@ -2,13 +2,14 @@ import { JsonValue } from "@blockprotocol/core";
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system/slim";
 
 import {
+  EntityRootedSubgraph,
   ExclusiveTimestampLimitedTemporalBound,
   InclusiveTimestampLimitedTemporalBound,
   TemporalAxes,
   TimeInterval,
   Timestamp,
   UnresolvedQueryTemporalAxes,
-} from "../types.js";
+} from "../types-non-temporal.js";
 import { Subgraph, SubgraphRootTypes } from "./subgraph.js";
 import { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 
@@ -54,11 +55,12 @@ export type EntityTemporalVersioningMetadata = Record<
   HalfClosedInterval
 >;
 
-export type EntityMetadata = {
+export type EntityMetadata<TemporalSupport extends boolean> = {
   recordId: EntityRecordId;
   entityTypeId: VersionedUri;
-  temporalVersioning: EntityTemporalVersioningMetadata;
-};
+} & (TemporalSupport extends true
+  ? { temporalVersioning: EntityTemporalVersioningMetadata }
+  : {});
 
 export type LinkData = {
   leftToRightOrder?: number;
@@ -68,18 +70,19 @@ export type LinkData = {
 };
 
 export type Entity<
+  TemporalSupport extends boolean,
   Properties extends EntityPropertiesObject | null = Record<
     BaseUri,
     EntityPropertyValue
   >,
 > = {
-  metadata: EntityMetadata;
+  metadata: EntityMetadata<TemporalSupport>;
   linkData?: LinkData;
 } & (Properties extends null ? {} : { properties: Properties });
 
-export type LinkEntityAndRightEntity = {
-  linkEntity: Entity;
-  rightEntity: Entity;
+export type LinkEntityAndRightEntity<TemporalSupport extends boolean> = {
+  linkEntity: Entity<TemporalSupport>;
+  rightEntity: Entity<TemporalSupport>;
 };
 
 export type CreateEntityData = {
@@ -88,11 +91,12 @@ export type CreateEntityData = {
   linkData?: LinkData;
 };
 
-export type GetEntityData = {
+export type GetEntityData<TemporalSupport extends boolean> = {
   entityId: EntityId;
   graphResolveDepths?: GraphResolveDepths;
-  temporalAxes: UnresolvedQueryTemporalAxes;
-};
+} & (TemporalSupport extends true
+  ? { temporalAxes: UnresolvedQueryTemporalAxes }
+  : {});
 
 export type UpdateEntityData = {
   entityId: EntityId;
@@ -147,14 +151,16 @@ export type AggregateOperationInput = {
   multiFilter?: MultiFilter | null;
 };
 
-export type AggregateEntitiesData = {
+export type AggregateEntitiesData<TemporalSupport extends boolean> = {
   operation: AggregateOperationInput;
   graphResolveDepths?: GraphResolveDepths;
-  temporalAxes: UnresolvedQueryTemporalAxes;
-};
+} & (TemporalSupport extends true
+  ? { temporalAxes: UnresolvedQueryTemporalAxes }
+  : {});
 
 export type AggregateEntitiesResult<
-  T extends Subgraph<SubgraphRootTypes["entity"]>,
+  TemporalSupport extends boolean,
+  T extends EntityRootedSubgraph<TemporalSupport>,
 > = {
   results: T;
   operation: AggregateOperationInput &

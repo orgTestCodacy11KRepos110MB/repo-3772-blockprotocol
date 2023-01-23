@@ -18,10 +18,13 @@ import {
 } from "./index.js";
 import { getOutgoingLinkAndTargetEntities, getRoots } from "./stdlib.js";
 
-export type BlockComponent<RootEntity extends Entity = Entity> =
-  FunctionComponent<BlockGraphProperties<RootEntity>>;
+export type BlockComponent<
+  TemporalSupport extends boolean,
+  RootEntity extends Entity<TemporalSupport> = Entity<TemporalSupport>,
+> = FunctionComponent<BlockGraphProperties<TemporalSupport, RootEntity>>;
 
 const useGraphServiceConstructor = <
+  TemporalSupport extends boolean,
   T extends typeof GraphBlockHandler | typeof GraphEmbedderHandler,
 >({
   Handler,
@@ -36,8 +39,8 @@ const useGraphServiceConstructor = <
 
   const [graphService, setGraphService] = useState<
     | (T extends typeof GraphBlockHandler
-        ? GraphBlockHandler
-        : GraphEmbedderHandler)
+        ? GraphBlockHandler<TemporalSupport>
+        : GraphEmbedderHandler<TemporalSupport>)
     | null
   >(null);
 
@@ -59,8 +62,8 @@ const useGraphServiceConstructor = <
           element: ref.current,
           ...(constructorArgs as unknown as ConstructorParameters<T>), // @todo fix these casts
         }) as T extends typeof GraphBlockHandler // @todo fix these casts
-          ? GraphBlockHandler
-          : GraphEmbedderHandler,
+          ? GraphBlockHandler<TemporalSupport>
+          : GraphEmbedderHandler<TemporalSupport>,
       );
     }
   });
@@ -74,13 +77,13 @@ const useGraphServiceConstructor = <
  * The graphService will only be reconstructed if the element reference changes.
  * Updates to any callbacks after first constructing should be made by calling graphService.on("messageName", callback);
  */
-export const useGraphBlockService = (
+export const useGraphBlockService = <TemporalSupport extends boolean>(
   ref: RefObject<HTMLElement>,
   constructorArgs?: Omit<
     ConstructorParameters<typeof GraphBlockHandler>[0],
     "element"
   >,
-): { graphService: GraphBlockHandler | null } => {
+): { graphService: GraphBlockHandler<TemporalSupport> | null } => {
   return useGraphServiceConstructor({
     Handler: GraphBlockHandler,
     constructorArgs,
@@ -96,13 +99,13 @@ export const useGraphBlockService = (
  * 1. to register one, call graphService.on("messageName", callback);
  * 2. to register multiple, call graphService.registerCallbacks({ [messageName]: callback });
  */
-export const useGraphEmbedderService = (
+export const useGraphEmbedderService = <TemporalSupport extends boolean>(
   ref: RefObject<HTMLElement>,
   constructorArgs?: Omit<
     ConstructorParameters<typeof GraphEmbedderHandler>[0],
     "element"
   >,
-): { graphService: GraphEmbedderHandler | null } => {
+): { graphService: GraphEmbedderHandler<TemporalSupport> | null } => {
   return useGraphServiceConstructor({
     Handler: GraphEmbedderHandler,
     ref,
@@ -111,13 +114,17 @@ export const useGraphEmbedderService = (
 };
 
 export const useEntitySubgraph = <
-  RootEntity extends Entity,
-  RootEntityLinkedEntities extends LinkEntityAndRightEntity[],
+  TemporalSupport extends boolean,
+  RootEntity extends Entity<TemporalSupport>,
+  RootEntityLinkedEntities extends LinkEntityAndRightEntity<TemporalSupport>[],
 >(
-  entitySubgraph: Subgraph<{
-    vertexId: EntityVertexId;
-    element: RootEntity;
-  }>,
+  entitySubgraph: Subgraph<
+    TemporalSupport,
+    {
+      vertexId: EntityVertexId;
+      element: RootEntity;
+    }
+  >,
 ) => {
   return useMemo(() => {
     const rootEntity = getRoots(entitySubgraph)[0];

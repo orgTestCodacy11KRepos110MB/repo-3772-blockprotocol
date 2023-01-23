@@ -9,7 +9,7 @@ import {
   isConstrainsPropertiesOnEdge,
   OntologyTypeVertexId,
   Subgraph,
-} from "../../../types/subgraph.js";
+} from "../../../index.js";
 
 /**
  * Gets identifiers for all `PropertyType`s referenced within a given `EntityType` schema by searching for
@@ -20,7 +20,7 @@ import {
  * @returns {OntologyTypeVertexId[]} - The identifiers of the `PropertyType`s referenced from the `EntityType`
  */
 export const getPropertyTypesReferencedByEntityType = (
-  subgraph: Subgraph,
+  subgraph: Subgraph<boolean>,
   entityTypeId: OntologyTypeVertexId | VersionedUri,
 ): OntologyTypeVertexId[] => {
   let baseUri: BaseUri;

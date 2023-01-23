@@ -7,7 +7,7 @@ import {
   KnowledgeGraphVertices,
   Subgraph,
   Timestamp,
-} from "../types.js";
+} from "../index.js";
 import { isEqual } from "./mutate-subgraph/is-equal.js";
 
 /**
@@ -21,8 +21,10 @@ import { isEqual } from "./mutate-subgraph/is-equal.js";
  * @param atTime – the time at which the edge should be recorded as being added at
  * @param outwardEdge – the edge itself
  */
-export const addKnowledgeGraphEdgeToSubgraphByMutation = (
-  subgraph: Subgraph,
+export const addKnowledgeGraphEdgeToSubgraphByMutation = <
+  TemporalSupport extends boolean,
+>(
+  subgraph: Subgraph<TemporalSupport>,
   sourceEntityId: EntityId,
   atTime: Timestamp,
   outwardEdge: KnowledgeGraphOutwardEdge,
@@ -61,9 +63,11 @@ export const addKnowledgeGraphEdgeToSubgraphByMutation = (
  * @param subgraph – the subgraph to mutate by adding the provided entities
  * @param entities – the entity to add to the provided subgraph
  */
-export const addEntitiesToSubgraphByMutation = (
-  subgraph: Subgraph,
-  entities: Entity[],
+export const addEntitiesToSubgraphByMutation = <
+  TemporalSupport extends boolean,
+>(
+  subgraph: Subgraph<TemporalSupport>,
+  entities: Entity<TemporalSupport>[],
 ) => {
   /* eslint-disable no-param-reassign -- We want to mutate the input here */
   const linkMap: Record<

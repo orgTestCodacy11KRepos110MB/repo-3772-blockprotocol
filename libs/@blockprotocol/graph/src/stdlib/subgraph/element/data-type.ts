@@ -5,16 +5,21 @@ import {
   VersionedUri,
 } from "@blockprotocol/type-system/slim";
 
-import { DataTypeWithMetadata } from "../../../types/ontology/data-type.js";
-import { OntologyTypeVertexId, Subgraph } from "../../../types/subgraph.js";
-import { isDataTypeVertex } from "../../../types/subgraph/vertices.js";
+import {
+  DataTypeWithMetadata,
+  isDataTypeVertex,
+  OntologyTypeVertexId,
+  Subgraph,
+} from "../../../index.js";
 
 /**
  * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph
  *
  * @param subgraph
  */
-export const getDataTypes = (subgraph: Subgraph): DataTypeWithMetadata[] => {
+export const getDataTypes = (
+  subgraph: Subgraph<boolean>,
+): DataTypeWithMetadata[] => {
   return Object.values(
     Object.values(subgraph.vertices).flatMap((versionObject) =>
       Object.values(versionObject)
@@ -33,7 +38,7 @@ export const getDataTypes = (subgraph: Subgraph): DataTypeWithMetadata[] => {
  * @throws if the vertex isn't a `DataTypeVertex`
  */
 export const getDataTypeById = (
-  subgraph: Subgraph,
+  subgraph: Subgraph<boolean>,
   dataTypeId: VersionedUri,
 ): DataTypeWithMetadata | undefined => {
   const [baseUri, version] = [
@@ -62,7 +67,7 @@ export const getDataTypeById = (
  * @throws if the vertex isn't a `DataTypeVertex`
  */
 export const getDataTypeByVertexId = (
-  subgraph: Subgraph,
+  subgraph: Subgraph<boolean>,
   vertexId: OntologyTypeVertexId,
 ): DataTypeWithMetadata | undefined => {
   const vertex = subgraph.vertices[vertexId.baseId]?.[vertexId.revisionId];
@@ -85,7 +90,7 @@ export const getDataTypeByVertexId = (
  * @param baseUri
  */
 export const getDataTypesByBaseUri = (
-  subgraph: Subgraph,
+  subgraph: Subgraph<boolean>,
   baseUri: BaseUri,
 ): DataTypeWithMetadata[] => {
   const versionObject = subgraph.vertices[baseUri];

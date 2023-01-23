@@ -12,8 +12,12 @@ import {
   getEntities as getEntitiesTemporal,
   getEntity as getEntityTemporal,
 } from "./stdlib/subgraph/element/entity.js";
-import { Entity, EntityId, LinkEntityAndRightEntity } from "./types/entity.js";
-import { Subgraph } from "./types/subgraph.js";
+import {
+  Entity,
+  EntityId,
+  LinkEntityAndRightEntity,
+  Subgraph,
+} from "./types-non-temporal.js";
 
 export { buildSubgraph } from "./stdlib/subgraph/builder.js";
 export {
@@ -110,7 +114,7 @@ export const getOutgoingLinkAndTargetEntities = <
   subgraph: Subgraph,
   entityId: EntityId,
 ): LinkAndRightEntities =>
-  getOutgoingLinkAndTargetEntitiesTemporal<LinkAndRightEntities>(
+  getOutgoingLinkAndTargetEntitiesTemporal<false, LinkAndRightEntities>(
     subgraph,
     entityId,
   );

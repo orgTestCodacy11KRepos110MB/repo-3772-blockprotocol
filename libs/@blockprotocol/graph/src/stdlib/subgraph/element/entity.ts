@@ -1,7 +1,11 @@
-import { Entity, EntityId, EntityRevisionId } from "../../../types/entity.js";
-import { Subgraph } from "../../../types/subgraph.js";
-import { isEntityVertex } from "../../../types/subgraph/vertices.js";
-import { Timestamp } from "../../../types/temporal-versioning.js";
+import {
+  Entity,
+  EntityId,
+  EntityRevisionId,
+  isEntityVertex,
+  Subgraph,
+  Timestamp,
+} from "../../../index.js";
 
 /**
  * Returns all `Entity`s within the vertices of the subgraph, optionally filtering to only get their latest revisions.
@@ -9,10 +13,10 @@ import { Timestamp } from "../../../types/temporal-versioning.js";
  * @param subgraph
  * @param latest - whether or not to only return the latest revisions of each entity
  */
-export const getEntities = (
-  subgraph: Subgraph,
+export const getEntities = <TemporalSupport extends boolean>(
+  subgraph: Subgraph<TemporalSupport>,
   latest: boolean = false,
-): Entity[] => {
+): Entity<TemporalSupport>[] => {
   return Object.values(
     Object.values(subgraph.vertices).flatMap((versionObject) => {
       const entityRevisionVertices = latest
@@ -41,11 +45,11 @@ export const getEntities = (
  *     lifespan overlaps the given timestamp will be returned.
  * @throws if the vertex isn't an `EntityVertex`
  */
-export const getEntity = (
-  subgraph: Subgraph,
+export const getEntity = <TemporalSupport extends boolean>(
+  subgraph: Subgraph<TemporalSupport>,
   entityId: EntityId,
   targetRevisionInformation?: EntityRevisionId | Timestamp | Date,
-): Entity | undefined => {
+): Entity<TemporalSupport> | undefined => {
   const entityRevisions = subgraph.vertices[entityId];
 
   if (entityRevisions === undefined) {
@@ -54,7 +58,7 @@ export const getEntity = (
 
   const revisionVersions = Object.keys(entityRevisions).sort();
 
-  let entityRevision: Entity | undefined;
+  let entityRevision: Entity<TemporalSupport> | undefined;
 
   // Short circuit for efficiency, just take the latest
   if (targetRevisionInformation === undefined) {
@@ -116,10 +120,10 @@ export const getEntity = (
  * @param subgraph
  * @param entityId
  */
-export const getEntityRevisionsByEntityId = (
-  subgraph: Subgraph,
+export const getEntityRevisionsByEntityId = <TemporalSupport extends boolean>(
+  subgraph: Subgraph<TemporalSupport>,
   entityId: EntityId,
-): Entity[] => {
+): Entity<TemporalSupport>[] => {
   const versionObject = subgraph.vertices[entityId];
 
   if (!versionObject) {

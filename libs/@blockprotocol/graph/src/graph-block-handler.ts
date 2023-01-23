@@ -19,30 +19,30 @@ import {
   CreateResourceError,
   DeleteEntityData,
   Entity,
+  EntityRootedSubgraph,
+  EntityTypeRootedSubgraph,
   GetEntityData,
   GetEntityTypeData,
   ReadOrModifyResourceError,
-  Subgraph,
-  SubgraphRootTypes,
   UpdateEntityData,
   UploadFileData,
   UploadFileReturn,
-} from "./types.js";
+} from "./index.js";
 
 /**
  * Creates a handler for the graph service for the block.
  * Register callbacks in the constructor or afterwards using the 'on' method to react to messages from the embedder.
  * Call the relevant methods to send messages to the embedder.
  */
-export class GraphBlockHandler
+export class GraphBlockHandler<TemporalSupport extends boolean>
   extends ServiceHandler
-  implements BlockGraphMessages
+  implements BlockGraphMessages<TemporalSupport>
 {
   constructor({
     callbacks,
     element,
   }: {
-    callbacks?: Partial<BlockGraphMessageCallbacks>;
+    callbacks?: Partial<BlockGraphMessageCallbacks<TemporalSupport>>;
     element: HTMLElement;
   }) {
     super({ element, serviceName: "graph", sourceType: "block" });
@@ -61,7 +61,9 @@ export class GraphBlockHandler
    * Registers multiple callbacks at once.
    * Useful for bulk updates to callbacks after the service is first initialised.
    */
-  registerCallbacks(callbacks: Partial<BlockGraphMessageCallbacks>) {
+  registerCallbacks(
+    callbacks: Partial<BlockGraphMessageCallbacks<TemporalSupport>>,
+  ) {
     super.registerCallbacks(callbacks);
   }
 
@@ -71,10 +73,10 @@ export class GraphBlockHandler
    * @param messageName the message name to listen for
    * @param handlerFunction the function to call when the message is received, with the message data / errors
    */
-  on<K extends keyof BlockGraphMessageCallbacks>(
-    this: GraphBlockHandler,
+  on<K extends keyof BlockGraphMessageCallbacks<TemporalSupport>>(
+    this: GraphBlockHandler<TemporalSupport>,
     messageName: K,
-    handlerFunction: BlockGraphMessageCallbacks[K],
+    handlerFunction: BlockGraphMessageCallbacks<TemporalSupport>[K],
   ) {
     // @todo restore this when module resolution issue resolved
     // @see https://app.asana.com/0/1202542409311090/1202614421149286/f
@@ -98,7 +100,7 @@ export class GraphBlockHandler
   // @todo automate creation of these methods from graph-service.json and types.ts
 
   createEntity({ data }: { data?: CreateEntityData }) {
-    return this.sendMessage<Entity, CreateResourceError>({
+    return this.sendMessage<Entity<TemporalSupport>, CreateResourceError>({
       message: {
         messageName: "createEntity",
         data,
@@ -108,13 +110,15 @@ export class GraphBlockHandler
   }
 
   updateEntity({ data }: { data?: UpdateEntityData }) {
-    return this.sendMessage<Entity, ReadOrModifyResourceError>({
-      message: {
-        messageName: "updateEntity",
-        data,
+    return this.sendMessage<Entity<TemporalSupport>, ReadOrModifyResourceError>(
+      {
+        message: {
+          messageName: "updateEntity",
+          data,
+        },
+        respondedToBy: "updateEntityResponse",
       },
-      respondedToBy: "updateEntityResponse",
-    });
+    );
   }
 
   deleteEntity({ data }: { data?: DeleteEntityData }) {
@@ -128,9 +132,9 @@ export class GraphBlockHandler
     });
   }
 
-  getEntity({ data }: { data?: GetEntityData }) {
+  getEntity({ data }: { data?: GetEntityData<TemporalSupport> }) {
     return this.sendMessage<
-      Subgraph<SubgraphRootTypes["entity"]>,
+      EntityRootedSubgraph<TemporalSupport>,
       ReadOrModifyResourceError
     >({
       message: {
@@ -141,9 +145,16 @@ export class GraphBlockHandler
     });
   }
 
-  aggregateEntities({ data }: { data?: AggregateEntitiesData }) {
+  aggregateEntities({
+    data,
+  }: {
+    data?: AggregateEntitiesData<TemporalSupport>;
+  }) {
     return this.sendMessage<
-      AggregateEntitiesResult<Subgraph<SubgraphRootTypes["entity"]>>,
+      AggregateEntitiesResult<
+        TemporalSupport,
+        EntityRootedSubgraph<TemporalSupport>
+      >,
       ReadOrModifyResourceError
     >({
       message: {
@@ -188,7 +199,7 @@ export class GraphBlockHandler
 
   getEntityType({ data }: { data?: GetEntityTypeData }) {
     return this.sendMessage<
-      Subgraph<SubgraphRootTypes["entityType"]>,
+      EntityTypeRootedSubgraph<TemporalSupport>,
       ReadOrModifyResourceError
     >({
       message: {
@@ -201,7 +212,10 @@ export class GraphBlockHandler
 
   aggregateEntityTypes({ data }: { data?: AggregateEntityTypesData }) {
     return this.sendMessage<
-      AggregateEntityTypesResult<Subgraph<SubgraphRootTypes["entityType"]>>,
+      AggregateEntityTypesResult<
+        TemporalSupport,
+        EntityTypeRootedSubgraph<TemporalSupport>
+      >,
       ReadOrModifyResourceError
     >({
       message: {

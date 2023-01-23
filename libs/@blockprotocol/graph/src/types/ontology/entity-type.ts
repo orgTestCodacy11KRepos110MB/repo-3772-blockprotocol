@@ -1,7 +1,7 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system/slim";
 
 import { AggregateOperationInput } from "../entity.js";
-import { Subgraph, SubgraphRootTypes } from "../subgraph.js";
+import { EntityTypeRootedSubgraph } from "../subgraph.js";
 import { OntologyElementMetadata } from "./metadata.js";
 
 /**
@@ -23,7 +23,8 @@ export type AggregateEntityTypesData = {
 };
 
 export type AggregateEntityTypesResult<
-  T extends Subgraph<SubgraphRootTypes["entityType"]>,
+  TemporalSupport extends boolean,
+  T extends EntityTypeRootedSubgraph<TemporalSupport>,
 > = {
   results: T[];
   operation: AggregateOperationInput &

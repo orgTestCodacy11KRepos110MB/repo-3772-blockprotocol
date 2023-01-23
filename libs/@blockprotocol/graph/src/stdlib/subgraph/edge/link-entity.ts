@@ -1,17 +1,16 @@
 import {
   Entity,
   EntityId,
-  LinkEntityAndRightEntity,
-} from "../../../types/entity.js";
-import { OutwardEdge, Subgraph } from "../../../types/subgraph.js";
-import {
   isHasLeftEntityEdge,
   isHasRightEntityEdge,
   isIncomingLinkEdge,
   isOutgoingLinkEdge,
+  LinkEntityAndRightEntity,
   OutgoingLinkEdge,
-} from "../../../types/subgraph/edges/outward-edge-alias.js";
-import { Timestamp } from "../../../types/temporal-versioning";
+  OutwardEdge,
+  Subgraph,
+  Timestamp,
+} from "../../../index.js";
 import { mustBeDefined } from "../../must-be-defined.js";
 import { getEntity } from "../element/entity.js";
 
@@ -23,9 +22,9 @@ const convertTimeToStringWithDefault = (timestamp?: Date | Timestamp) => {
     : timestamp.toISOString();
 };
 
-const getUniqueEntitiesFilter = () => {
+const getUniqueEntitiesFilter = <TemporalSupport extends boolean>() => {
   const set = new Set();
-  return (entity: Entity) => {
+  return (entity: Entity<TemporalSupport>) => {
     const recordIdString = JSON.stringify(entity.metadata.recordId);
     if (set.has(recordIdString)) {
       return false;
@@ -46,11 +45,11 @@ const getUniqueEntitiesFilter = () => {
  * @param {Date | Timestamp} [timestamp] - An optional `Date` or an ISO-formatted datetime string of the moment to search
  *    for, if not supplied it defaults to the current time
  */
-export const getOutgoingLinksForEntity = (
-  subgraph: Subgraph,
+export const getOutgoingLinksForEntity = <TemporalSupport extends boolean>(
+  subgraph: Subgraph<TemporalSupport>,
   entityId: EntityId,
   timestamp?: Date | Timestamp,
-): Entity[] => {
+): Entity<TemporalSupport>[] => {
   const timestampString = convertTimeToStringWithDefault(timestamp);
 
   const entityEdges = subgraph.edges[entityId];
@@ -97,11 +96,11 @@ export const getOutgoingLinksForEntity = (
  * @param {Date | Timestamp} [timestamp] - An optional `Date` or an ISO-formatted datetime string of the moment to search
  *    for, if not supplied it defaults to the current time
  */
-export const getIncomingLinksForEntity = (
-  subgraph: Subgraph,
+export const getIncomingLinksForEntity = <TemporalSupport extends boolean>(
+  subgraph: Subgraph<TemporalSupport>,
   entityId: EntityId,
   timestamp?: Date | Timestamp,
-): Entity[] => {
+): Entity<TemporalSupport>[] => {
   const timestampString = convertTimeToStringWithDefault(timestamp);
 
   const entityEdges = subgraph.edges[entityId];
@@ -148,11 +147,11 @@ export const getIncomingLinksForEntity = (
  * @param {Date | Timestamp} [timestamp] - An optional `Date` or an ISO-formatted datetime string of the moment to search
  *    for, if not supplied it defaults to the current time
  */
-export const getLeftEntityForLinkEntity = (
-  subgraph: Subgraph,
+export const getLeftEntityForLinkEntity = <TemporalSupport extends boolean>(
+  subgraph: Subgraph<TemporalSupport>,
   entityId: EntityId,
   timestamp?: Date | Timestamp,
-): Entity => {
+): Entity<TemporalSupport> => {
   const linkEntityEdges = mustBeDefined(
     subgraph.edges[entityId],
     "link entities must have left endpoints and therefore must have edges",
@@ -178,11 +177,11 @@ export const getLeftEntityForLinkEntity = (
  * @param {Date | Timestamp} [timestamp] - An optional `Date` or an ISO-formatted datetime string of the moment to search
  *    for, if not supplied it defaults to the current time
  */
-export const getRightEntityForLinkEntity = (
-  subgraph: Subgraph,
+export const getRightEntityForLinkEntity = <TemporalSupport extends boolean>(
+  subgraph: Subgraph<TemporalSupport>,
   entityId: EntityId,
   timestamp?: Date | Timestamp,
-): Entity => {
+): Entity<TemporalSupport> => {
   const linkEntityEdges = mustBeDefined(
     subgraph.edges[entityId],
     "link entities must have right endpoints and therefore must have edges",
@@ -210,9 +209,10 @@ export const getRightEntityForLinkEntity = (
  *    for, if not supplied it defaults to the current time
  */
 export const getOutgoingLinkAndTargetEntities = <
-  LinkAndRightEntities extends LinkEntityAndRightEntity[] = LinkEntityAndRightEntity[],
+  TemporalSupport extends boolean,
+  LinkAndRightEntities extends LinkEntityAndRightEntity<TemporalSupport>[] = LinkEntityAndRightEntity<TemporalSupport>[],
 >(
-  subgraph: Subgraph,
+  subgraph: Subgraph<TemporalSupport>,
   entityId: EntityId,
   timestamp?: Date | Timestamp,
 ): LinkAndRightEntities => {

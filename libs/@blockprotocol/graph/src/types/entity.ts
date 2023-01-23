@@ -1,14 +1,7 @@
 import { JsonValue } from "@blockprotocol/core";
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system/slim";
 
-import {
-  ExclusiveTimestampLimitedTemporalBound,
-  InclusiveTimestampLimitedTemporalBound,
-  TemporalAxes,
-  TimeInterval,
-  Timestamp,
-  UnresolvedQueryTemporalAxes,
-} from "../types.js";
+import { Timestamp } from "../types.js";
 import { Subgraph, SubgraphRootTypes } from "./subgraph.js";
 import { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 
@@ -44,20 +37,9 @@ export type EntityPropertiesObject = {
   [_: BaseUri]: EntityPropertyValue;
 };
 
-type HalfClosedInterval = TimeInterval<
-  InclusiveTimestampLimitedTemporalBound,
-  ExclusiveTimestampLimitedTemporalBound
->;
-
-export type EntityTemporalVersioningMetadata = Record<
-  TemporalAxes,
-  HalfClosedInterval
->;
-
 export type EntityMetadata = {
   recordId: EntityRecordId;
   entityTypeId: VersionedUri;
-  temporalVersioning: EntityTemporalVersioningMetadata;
 };
 
 export type LinkData = {
@@ -91,7 +73,6 @@ export type CreateEntityData = {
 export type GetEntityData = {
   entityId: EntityId;
   graphResolveDepths?: GraphResolveDepths;
-  temporalAxes: UnresolvedQueryTemporalAxes;
 };
 
 export type UpdateEntityData = {
@@ -150,7 +131,6 @@ export type AggregateOperationInput = {
 export type AggregateEntitiesData = {
   operation: AggregateOperationInput;
   graphResolveDepths?: GraphResolveDepths;
-  temporalAxes: UnresolvedQueryTemporalAxes;
 };
 
 export type AggregateEntitiesResult<

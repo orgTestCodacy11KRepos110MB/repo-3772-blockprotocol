@@ -72,7 +72,9 @@ export const isEntityTypeVertex = (
   return vertex.kind === "entityType";
 };
 
-export const isEntityVertex = (vertex: Vertex): vertex is EntityVertex => {
+export const isEntityVertex = <TemporalVersion extends boolean>(
+  vertex: Vertex<TemporalVersion>,
+): vertex is EntityVertex<TemporalVersion> => {
   return vertex.kind === "entity";
 };
 

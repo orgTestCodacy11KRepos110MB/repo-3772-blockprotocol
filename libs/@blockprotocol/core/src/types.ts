@@ -157,7 +157,7 @@ export type MessageCallback<
   InputData,
   InputErrorCode extends string | null,
   ReturnData extends any | null = null,
-  ReturnErrorCode extends ReturnData extends null ? null : string | null = null,
+  ReturnErrorCode extends string | null = null,
 > = {
   (messageData: MessageData<InputData, InputErrorCode>): ReturnData extends null
     ? void

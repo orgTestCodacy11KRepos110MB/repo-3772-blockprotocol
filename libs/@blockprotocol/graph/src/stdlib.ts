@@ -1,6 +1,7 @@
 /**
  * The base standard library of functions for interacting with a `Subgraph`.
  */
+import { buildSubgraph as buildSubgraphGeneral } from "./stdlib/subgraph/builder.js";
 import {
   getIncomingLinksForEntity as getIncomingLinksForEntityTemporal,
   getLeftEntityForLinkEntity as getLeftEntityForLinkEntityTemporal,
@@ -15,11 +16,14 @@ import {
 import {
   Entity,
   EntityId,
+  EntityRecordId,
+  EntityRootedSubgraph,
+  GraphResolveDepths,
   LinkEntityAndRightEntity,
+  ResolvedQueryTemporalAxes,
   Subgraph,
 } from "./types-non-temporal.js";
 
-export { buildSubgraph } from "./stdlib/subgraph/builder.js";
 export {
   getDataTypeById,
   getDataTypes,
@@ -118,3 +122,38 @@ export const getOutgoingLinkAndTargetEntities = <
     subgraph,
     entityId,
   );
+
+/**
+ * Builds a Subgraph from a given set of entities, some (or all) of which may be 'link entities' –
+ * i.e. entities that represent relationships between other entities – or other entities.
+ *
+ * The set of entities should represent the result of a query on a graph.
+ * The 'roots' and 'depths' used for that query should be provided along with the data.
+ *
+ * The maximum value for any single depth is 255.
+ *
+ * This function does NOT verify that the provided depths are accurate for the data.
+ * It DOES check that the provided roots are present in the data.
+ *
+ * @param data – the data to build the subgraph from (which becomes the vertices)
+ * @param data.entities – the entities to build the subgraph from
+ * @param depths – the depth values to provide in the returned subgraph
+ * @param rootRecordIds – the root values to provide in the returned subgraph
+ *
+ * @returns a Subgraph containing:
+ *   - 'vertices' containing the provided entities
+ *   - 'edges' calculated by the function, representing connections between vertices
+ *   - 'depths' as provided by the caller
+ *   - 'roots' as provided by the caller
+ *
+ * @throws if the provided roots are not present in the data
+ *
+ * @todo add support for ontology vertices (e.g. entity types)
+ */
+export const buildSubgraph = (
+  data: { entities: Entity[] },
+  rootRecordIds: EntityRecordId[],
+  depths: GraphResolveDepths,
+): EntityRootedSubgraph<false> => {
+  return buildSubgraphGeneral<false>(data, rootRecordIds, depths, undefined);
+};

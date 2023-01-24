@@ -90,20 +90,22 @@ export const addEntitiesToSubgraphByMutation = <
       }
     }
 
-    const entityVertex: EntityVertex = {
+    const entityVertex: EntityVertex<TemporalSupport> = {
       kind: "entity",
       inner: entity,
     };
 
     if (!subgraph.vertices[recordId.entityId]) {
       // This is needed because ts can't differentiate between `EntityId` and `BaseUri`
-      (subgraph.vertices as KnowledgeGraphVertices)[recordId.entityId] = {
+      (subgraph.vertices as KnowledgeGraphVertices<TemporalSupport>)[
+        recordId.entityId
+      ] = {
         [recordId.editionId]: entityVertex,
       };
     } else {
-      (subgraph.vertices as KnowledgeGraphVertices)[recordId.entityId]![
-        recordId.editionId
-      ] = entityVertex;
+      (subgraph.vertices as KnowledgeGraphVertices<TemporalSupport>)[
+        recordId.entityId
+      ]![recordId.editionId] = entityVertex;
     }
   }
 

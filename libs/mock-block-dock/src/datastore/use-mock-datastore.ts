@@ -9,18 +9,19 @@ import { useCallback } from "react";
 import { v4 as uuid } from "uuid";
 
 import { useDefaultState } from "../use-default-state";
+import { getDefaultEntityVersionInterval } from "./get-default-entity-version-interval";
 import { aggregateEntities as aggregateEntitiesImpl } from "./hook-implementations/entity/aggregate-entities";
 import { getEntity as getEntityImpl } from "./hook-implementations/entity/get-entity";
 import { useMockDataToSubgraph } from "./use-mock-data-to-subgraph";
 
 export type MockData = {
-  entities: Entity[];
+  entities: Entity<true>[];
   // linkedAggregationDefinitions: LinkedAggregationDefinition[];
 };
 
 export type MockDatastore = {
-  graph: Subgraph;
-  graphServiceCallbacks: Required<EmbedderGraphMessageCallbacks>;
+  graph: Subgraph<true>;
+  graphServiceCallbacks: Required<EmbedderGraphMessageCallbacks<true>>;
 };
 
 const readonlyErrorReturn: {
@@ -48,7 +49,7 @@ export const useMockDatastore = (
   //   MockDataStore["linkedAggregationDefinitions"]
   // >(initialData.linkedAggregationDefinitions);
 
-  const aggregateEntities: EmbedderGraphMessageCallbacks["aggregateEntities"] =
+  const aggregateEntities: EmbedderGraphMessageCallbacks<boolean>["aggregateEntities"] =
     useCallback(
       async ({ data }) => {
         if (!data) {
@@ -67,7 +68,7 @@ export const useMockDatastore = (
       [graph],
     );
 
-  const createEntity: EmbedderGraphMessageCallbacks["createEntity"] =
+  const createEntity: EmbedderGraphMessageCallbacks<boolean>["createEntity"] =
     useCallback(
       async ({ data }) => {
         if (readonly) {
@@ -86,13 +87,15 @@ export const useMockDatastore = (
         }
         const entityId = uuid();
         const { entityTypeId, properties, linkData } = data;
-        const newEntity: Entity = {
+
+        const newEntity: Entity<true> = {
           metadata: {
             recordId: {
               entityId,
               editionId: new Date().toISOString(),
             },
             entityTypeId,
+            temporalVersioning: getDefaultEntityVersionInterval(),
           },
           properties,
           linkData,
@@ -111,37 +114,38 @@ export const useMockDatastore = (
       [readonly, setGraph],
     );
 
-  const getEntity: EmbedderGraphMessageCallbacks["getEntity"] = useCallback(
-    async ({ data }) => {
-      if (!data) {
-        return {
-          errors: [
-            {
-              code: "INVALID_INPUT",
-              message: "getEntity requires 'data' input",
-            },
-          ],
-        };
-      }
+  const getEntity: EmbedderGraphMessageCallbacks<boolean>["getEntity"] =
+    useCallback(
+      async ({ data }) => {
+        if (!data) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "getEntity requires 'data' input",
+              },
+            ],
+          };
+        }
 
-      const entitySubgraph = getEntityImpl(data, graph);
+        const entitySubgraph = getEntityImpl(data, graph);
 
-      if (!entitySubgraph) {
-        return {
-          errors: [
-            {
-              code: "NOT_FOUND",
-              message: `Could not find entity with entityId '${data.entityId}'`,
-            },
-          ],
-        };
-      }
-      return { data: entitySubgraph };
-    },
-    [graph],
-  );
+        if (!entitySubgraph) {
+          return {
+            errors: [
+              {
+                code: "NOT_FOUND",
+                message: `Could not find entity with entityId '${data.entityId}'`,
+              },
+            ],
+          };
+        }
+        return { data: entitySubgraph };
+      },
+      [graph],
+    );
 
-  const updateEntity: EmbedderGraphMessageCallbacks["updateEntity"] =
+  const updateEntity: EmbedderGraphMessageCallbacks<boolean>["updateEntity"] =
     useCallback(
       async ({ data }) => {
         if (readonly) {
@@ -220,13 +224,16 @@ export const useMockDatastore = (
                   }
                 : undefined;
 
-            const updatedEntity: Entity = {
+            /** @todo - Update the versioning intervals of the previous entity */
+
+            const updatedEntity: Entity<true> = {
               metadata: {
                 recordId: {
                   entityId,
                   editionId: new Date().toISOString(),
                 },
                 entityTypeId,
+                temporalVersioning: getDefaultEntityVersionInterval(),
               },
               properties,
               linkData,
@@ -245,7 +252,7 @@ export const useMockDatastore = (
       [readonly, setGraph],
     );
 
-  const deleteEntity: EmbedderGraphMessageCallbacks["deleteEntity"] =
+  const deleteEntity: EmbedderGraphMessageCallbacks<true>["deleteEntity"] =
     useCallback(
       async ({ data }) => {
         return {
@@ -283,7 +290,7 @@ export const useMockDatastore = (
       [setGraph, readonly],
     );
 
-  const aggregateEntityTypes: EmbedderGraphMessageCallbacks["aggregateEntityTypes"] =
+  const aggregateEntityTypes: EmbedderGraphMessageCallbacks<true>["aggregateEntityTypes"] =
     useCallback(async ({ data: _ }) => {
       return {
         errors: [
@@ -295,7 +302,7 @@ export const useMockDatastore = (
       };
     }, []);
 
-  const getEntityType: EmbedderGraphMessageCallbacks["getEntityType"] =
+  const getEntityType: EmbedderGraphMessageCallbacks<true>["getEntityType"] =
     useCallback(async ({ data }) => {
       return {
         errors: [
@@ -487,117 +494,118 @@ export const useMockDatastore = (
   //     [setLinkedAggregations, readonly],
   //   );
 
-  const uploadFile: EmbedderGraphMessageCallbacks["uploadFile"] = useCallback(
-    async ({ data }) => {
-      return {
-        errors: [
-          {
-            code: "NOT_IMPLEMENTED",
-            message: `Uploading files is not currently supported`,
-          },
-        ],
-      };
-
-      /** @todo - create the file entity-type and re-enable file uploading */
-      // eslint-disable-next-line no-unreachable -- currently unimplemented
-      if (readonly) {
-        return readonlyErrorReturn;
-      }
-
-      if (!data) {
+  const uploadFile: EmbedderGraphMessageCallbacks<true>["uploadFile"] =
+    useCallback(
+      async ({ data }) => {
         return {
           errors: [
             {
-              code: "INVALID_INPUT",
-              message: "uploadFile requires 'data' input",
+              code: "NOT_IMPLEMENTED",
+              message: `Uploading files is not currently supported`,
             },
           ],
         };
-      }
-      // const { file, url, mediaType } = data;
-      // if (!file && !url?.trim()) {
-      //   throw new Error(
-      //     `Please enter a valid ${mediaType} URL or select a file below`,
-      //   );
-      // }
-      //
-      // if (url?.trim()) {
-      //   const resp = await createEntity({
-      //     data: {
-      //       entityTypeId: "file1",
-      //       properties: {
-      //         url,
-      //         mediaType,
-      //       },
-      //     },
-      //   });
-      //   if (resp.errors || !resp.data) {
-      //     return {
-      //       errors: resp.errors ?? [
-      //         {
-      //           code: "INVALID_INPUT",
-      //           message: "Could not create File entity ",
-      //         },
-      //       ],
-      //     };
-      //   }
-      //   const returnData: UploadFileReturn = {
-      //     entityId: resp.data.entityId,
-      //     mediaType,
-      //     url,
-      //   };
-      //   return Promise.resolve({ data: returnData });
-      // } else if (file) {
-      //   const result = await new Promise<FileReader["result"] | null>(
-      //     (resolve, reject) => {
-      //       const reader = new FileReader();
-      //
-      //       reader.onload = (event) => {
-      //         resolve(event.target?.result ?? null);
-      //       };
-      //
-      //       reader.onerror = (event) => {
-      //         reject(event);
-      //       };
-      //
-      //       reader.readAsDataURL(file);
-      //     },
-      //   );
-      //
-      //   if (result) {
-      //     const resp = await createEntity({
-      //       data: {
-      //         entityTypeId: "file1",
-      //         properties: {
-      //           url: result.toString(),
-      //           mediaType,
-      //         },
-      //       },
-      //     });
-      //     if (resp.errors || !resp.data) {
-      //       return {
-      //         errors: resp.errors ?? [
-      //           {
-      //             code: "INVALID_INPUT",
-      //             message: "Could not create File entity ",
-      //           },
-      //         ],
-      //       };
-      //     }
-      //     const returnData: UploadFileReturn = {
-      //       entityId: resp.data.entityId,
-      //       mediaType,
-      //       url: result.toString(),
-      //     };
-      //     return Promise.resolve({ data: returnData });
-      //   }
-      //
-      //   throw new Error("Couldn't read your file");
-      // }
-      // throw new Error("Unreachable.");
-    },
-    [readonly],
-  );
+
+        /** @todo - create the file entity-type and re-enable file uploading */
+        // eslint-disable-next-line no-unreachable -- currently unimplemented
+        if (readonly) {
+          return readonlyErrorReturn;
+        }
+
+        if (!data) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "uploadFile requires 'data' input",
+              },
+            ],
+          };
+        }
+        // const { file, url, mediaType } = data;
+        // if (!file && !url?.trim()) {
+        //   throw new Error(
+        //     `Please enter a valid ${mediaType} URL or select a file below`,
+        //   );
+        // }
+        //
+        // if (url?.trim()) {
+        //   const resp = await createEntity({
+        //     data: {
+        //       entityTypeId: "file1",
+        //       properties: {
+        //         url,
+        //         mediaType,
+        //       },
+        //     },
+        //   });
+        //   if (resp.errors || !resp.data) {
+        //     return {
+        //       errors: resp.errors ?? [
+        //         {
+        //           code: "INVALID_INPUT",
+        //           message: "Could not create File entity ",
+        //         },
+        //       ],
+        //     };
+        //   }
+        //   const returnData: UploadFileReturn = {
+        //     entityId: resp.data.entityId,
+        //     mediaType,
+        //     url,
+        //   };
+        //   return Promise.resolve({ data: returnData });
+        // } else if (file) {
+        //   const result = await new Promise<FileReader["result"] | null>(
+        //     (resolve, reject) => {
+        //       const reader = new FileReader();
+        //
+        //       reader.onload = (event) => {
+        //         resolve(event.target?.result ?? null);
+        //       };
+        //
+        //       reader.onerror = (event) => {
+        //         reject(event);
+        //       };
+        //
+        //       reader.readAsDataURL(file);
+        //     },
+        //   );
+        //
+        //   if (result) {
+        //     const resp = await createEntity({
+        //       data: {
+        //         entityTypeId: "file1",
+        //         properties: {
+        //           url: result.toString(),
+        //           mediaType,
+        //         },
+        //       },
+        //     });
+        //     if (resp.errors || !resp.data) {
+        //       return {
+        //         errors: resp.errors ?? [
+        //           {
+        //             code: "INVALID_INPUT",
+        //             message: "Could not create File entity ",
+        //           },
+        //         ],
+        //       };
+        //     }
+        //     const returnData: UploadFileReturn = {
+        //       entityId: resp.data.entityId,
+        //       mediaType,
+        //       url: result.toString(),
+        //     };
+        //     return Promise.resolve({ data: returnData });
+        //   }
+        //
+        //   throw new Error("Couldn't read your file");
+        // }
+        // throw new Error("Unreachable.");
+      },
+      [readonly],
+    );
 
   return {
     graph,

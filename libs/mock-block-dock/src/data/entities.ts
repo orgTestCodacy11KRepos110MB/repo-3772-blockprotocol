@@ -8,7 +8,7 @@ import { companyNames, personNames } from "./words";
 const createPerson = (
   entityId: number,
   temporalVersioningMetadata: EntityTemporalVersioningMetadata,
-): Entity => {
+): Entity<true> => {
   const name = personNames[entityId] ?? "Unknown Person";
   return {
     metadata: {
@@ -31,7 +31,7 @@ const createPerson = (
 const createCompany = (
   entityId: number,
   temporalVersioningMetadata: EntityTemporalVersioningMetadata,
-): Entity => {
+): Entity<true> => {
   const name = companyNames[entityId] ?? "Unknown Company";
   return {
     metadata: {
@@ -55,7 +55,7 @@ const createWorksForLink = (
   sourceEntityId: string,
   destinationEntityId: string,
   temporalVersioningMetadata: EntityTemporalVersioningMetadata,
-): Entity => {
+): Entity<true> => {
   return {
     metadata: {
       recordId: {
@@ -77,7 +77,7 @@ const createFounderOfLink = (
   sourceEntityId: string,
   destinationEntityId: string,
   temporalVersioningMetadata: EntityTemporalVersioningMetadata,
-): Entity => {
+): Entity<true> => {
   return {
     metadata: {
       recordId: {
@@ -95,7 +95,7 @@ const createFounderOfLink = (
   };
 };
 
-const createEntities = (): Entity[] => {
+const createEntities = (): Entity<true>[] => {
   // First create people and companies in separate lists
   const people = [];
   const companies = [];
@@ -107,8 +107,7 @@ const createEntities = (): Entity[] => {
       limit: new Date(0).toISOString(),
     },
     end: {
-      kind: "exclusive",
-      limit: new Date().toISOString(),
+      kind: "unbounded",
     },
   } as const;
   const temporalVersioningMetadata: EntityTemporalVersioningMetadata = {

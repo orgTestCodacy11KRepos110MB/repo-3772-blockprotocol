@@ -8,6 +8,7 @@ import {
   TemporalAxes,
   TimeInterval,
   Timestamp,
+  Unbounded,
   UnresolvedQueryTemporalAxes,
 } from "../types-non-temporal.js";
 import { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
@@ -46,7 +47,7 @@ export type EntityPropertiesObject = {
 
 type HalfClosedInterval = TimeInterval<
   InclusiveTimestampLimitedTemporalBound,
-  ExclusiveTimestampLimitedTemporalBound
+  ExclusiveTimestampLimitedTemporalBound | Unbounded
 >;
 
 export type EntityTemporalVersioningMetadata = Record<
@@ -156,9 +157,10 @@ export type AggregateOperationInput = {
 export type AggregateEntitiesData<TemporalSupport extends boolean> = {
   operation: AggregateOperationInput;
   graphResolveDepths?: GraphResolveDepths;
-} & (TemporalSupport extends true
-  ? { temporalAxes: UnresolvedQueryTemporalAxes }
-  : {});
+  temporalAxes: TemporalSupport extends true
+    ? UnresolvedQueryTemporalAxes
+    : never;
+};
 
 export type AggregateEntitiesResult<
   TemporalSupport extends boolean,

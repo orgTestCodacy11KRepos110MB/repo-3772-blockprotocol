@@ -39,7 +39,7 @@ export const getRoots = <
         // smart enough to realise this can produce a value of type `Vertex` as it struggles with discriminating
         // `EntityId` and `BaseUri`
         rootVertexId.revisionId
-      ] as Vertex,
+      ] as Vertex<TemporalSupport>,
       `roots should have corresponding vertices but ${JSON.stringify(
         rootVertexId,
       )} was missing`,

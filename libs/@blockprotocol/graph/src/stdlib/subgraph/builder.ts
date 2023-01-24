@@ -1,9 +1,9 @@
 import {
   Entity,
   EntityRecordId,
+  EntityRootedSubgraph,
   GraphResolveDepths,
   ResolvedQueryTemporalAxes,
-  Subgraph,
 } from "../../index.js";
 import { addEntitiesToSubgraphByMutation } from "../../internal/mutate-subgraph.js";
 
@@ -46,7 +46,7 @@ export const buildSubgraph = <TemporalSupport extends boolean>(
   temporalAxes: TemporalSupport extends true
     ? ResolvedQueryTemporalAxes
     : undefined,
-) => {
+): EntityRootedSubgraph<TemporalSupport> => {
   const missingRoots = rootRecordIds.filter(
     ({ entityId, editionId }) =>
       !data.entities.find(
@@ -73,18 +73,20 @@ export const buildSubgraph = <TemporalSupport extends boolean>(
     revisionId: rootRecordId.editionId,
   }));
 
-  const subgraph: Subgraph<TemporalSupport> = {
+  // @ts-expect-error -- @todo fix this
+  const subgraph: EntityRootedSubgraph<TemporalSupport> = {
     roots,
     vertices: {},
     edges: {},
     depths,
-    temporalAxes:
-      temporalAxes !== undefined
-        ? {
+    ...(temporalAxes !== undefined
+      ? {
+          temporalAxes: {
             initial: temporalAxes,
             resolved: temporalAxes,
-          }
-        : undefined,
+          },
+        }
+      : {}),
   };
 
   addEntitiesToSubgraphByMutation(subgraph, data.entities);

@@ -38,12 +38,12 @@ export type ExclusiveTimestampLimitedTemporalBound = Subtype<
   }
 >;
 
+export type Unbounded = { kind: "unbounded" };
+
 /**
  * The bound (or explicit lack of a bound) of a time-interval
  */
-export type TemporalBound =
-  | { kind: "unbounded" }
-  | TimestampLimitedTemporalBound;
+export type TemporalBound = Unbounded | TimestampLimitedTemporalBound;
 
 export type TimeInterval<
   StartBound extends TemporalBound | null,

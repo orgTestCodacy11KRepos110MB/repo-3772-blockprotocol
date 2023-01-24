@@ -47,11 +47,8 @@ export type Subgraph<
   vertices: Vertices<TemporalSupport>;
   edges: Edges;
   depths: GraphResolveDepths;
-} & (TemporalSupport extends true
-  ? {
-      temporalAxes: SubgraphTemporalAxes;
-    }
-  : {});
+  temporalAxes: TemporalSupport extends true ? SubgraphTemporalAxes : never;
+};
 
 export type EntityRootedSubgraph<TemporalSupport extends boolean> = Subgraph<
   TemporalSupport,

@@ -1,15 +1,17 @@
 import {
+  AggregateEntitiesData,
+  EntityRootedSubgraph,
   GetEntityData,
   Subgraph,
-  SubgraphRootTypes,
 } from "@blockprotocol/graph";
-import { getEntity as getEntityFromSubgraph } from "@blockprotocol/graph/stdlib";
+import { getEntity as getEntityFromSubgraph } from "@blockprotocol/graph/stdlib-temporal";
 
+import { getDefaultTemporalAxes } from "../../get-default-temporal-axes";
 import { resolveTemporalAxes } from "../../resolve-temporal-axes";
 import { traverseElement } from "../../traverse";
 import { TraversalContext } from "../../traverse/traversal-context";
 
-export const getEntity = (
+export const getEntityImpl = (
   {
     entityId,
     graphResolveDepths = {
@@ -17,9 +19,9 @@ export const getEntity = (
       hasRightEntity: { incoming: 1, outgoing: 1 },
     },
     temporalAxes,
-  }: GetEntityData,
-  graph: Subgraph,
-): Subgraph<SubgraphRootTypes["entity"]> | undefined => {
+  }: GetEntityData<true>,
+  graph: Subgraph<true>,
+): EntityRootedSubgraph<true> | undefined => {
   const resolvedTemporalAxes = resolveTemporalAxes(temporalAxes);
 
   const entityRevision = getEntityFromSubgraph(graph, entityId);
@@ -54,4 +56,23 @@ export const getEntity = (
   );
 
   return subgraph;
+};
+
+export const getEntity = <TemporalSupport extends boolean>(
+  data: GetEntityData<TemporalSupport>,
+  graph: Subgraph<true>,
+): EntityRootedSubgraph<TemporalSupport> | undefined => {
+  if ("temporalAxes" in data) {
+    return getEntityImpl(data as GetEntityData<true>, graph) as
+      | EntityRootedSubgraph<TemporalSupport>
+      | undefined;
+  } else {
+    return getEntityImpl(
+      {
+        ...(data as GetEntityData<false>),
+        temporalAxes: getDefaultTemporalAxes(),
+      },
+      graph,
+    ) as EntityRootedSubgraph<TemporalSupport> | undefined;
+  }
 };

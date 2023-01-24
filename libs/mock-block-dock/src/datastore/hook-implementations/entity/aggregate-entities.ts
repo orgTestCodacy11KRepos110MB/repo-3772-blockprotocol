@@ -1,17 +1,18 @@
 import {
   AggregateEntitiesData,
   AggregateEntitiesResult,
+  EntityRootedSubgraph,
   Subgraph,
-  SubgraphRootTypes,
 } from "@blockprotocol/graph";
-import { getEntities } from "@blockprotocol/graph/stdlib";
+import { getEntities } from "@blockprotocol/graph/stdlib-temporal";
 
 import { filterAndSortEntitiesOrTypes } from "../../../util";
+import { getDefaultTemporalAxes } from "../../get-default-temporal-axes";
 import { resolveTemporalAxes } from "../../resolve-temporal-axes";
 import { traverseElement } from "../../traverse";
 import { TraversalContext } from "../../traverse/traversal-context";
 
-export const aggregateEntities = (
+const aggregateEntitiesImpl = (
   {
     operation,
     graphResolveDepths = {
@@ -19,18 +20,16 @@ export const aggregateEntities = (
       hasRightEntity: { incoming: 1, outgoing: 1 },
     },
     temporalAxes,
-  }: AggregateEntitiesData,
-  graph: Subgraph,
-): AggregateEntitiesResult<Subgraph<SubgraphRootTypes["entity"]>> => {
+  }: AggregateEntitiesData<true>,
+  graph: Subgraph<true>,
+): AggregateEntitiesResult<true, EntityRootedSubgraph<true>> => {
   const resolvedTemporalAxes = resolveTemporalAxes(temporalAxes);
 
-  const { results, operation: appliedOperation } = filterAndSortEntitiesOrTypes(
-    getEntities(graph),
-    {
+  const { results, operation: appliedOperation } =
+    filterAndSortEntitiesOrTypes<true>(getEntities<true>(graph), {
       operation,
       temporalAxes: resolvedTemporalAxes,
-    },
-  );
+    });
 
   const subgraph = {
     roots: results.map((entity) => ({
@@ -67,4 +66,33 @@ export const aggregateEntities = (
     results: subgraph,
     operation: appliedOperation,
   };
+};
+
+export const aggregateEntities = <TemporalSupport extends boolean>(
+  data: AggregateEntitiesData<TemporalSupport>,
+  graph: Subgraph<true>,
+): AggregateEntitiesResult<
+  TemporalSupport,
+  EntityRootedSubgraph<TemporalSupport>
+> => {
+  if ("temporalAxes" in data) {
+    return aggregateEntitiesImpl(
+      data as AggregateEntitiesData<true>,
+      graph,
+    ) as AggregateEntitiesResult<
+      TemporalSupport,
+      EntityRootedSubgraph<TemporalSupport>
+    >;
+  } else {
+    return aggregateEntitiesImpl(
+      {
+        ...(data as AggregateEntitiesData<false>),
+        temporalAxes: getDefaultTemporalAxes(),
+      },
+      graph,
+    ) as AggregateEntitiesResult<
+      TemporalSupport,
+      EntityRootedSubgraph<TemporalSupport>
+    >;
+  }
 };

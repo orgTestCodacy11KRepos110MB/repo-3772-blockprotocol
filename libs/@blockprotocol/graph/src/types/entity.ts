@@ -10,7 +10,6 @@ import {
   Timestamp,
   UnresolvedQueryTemporalAxes,
 } from "../types-non-temporal.js";
-import { Subgraph, SubgraphRootTypes } from "./subgraph.js";
 import { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 
 /** @todo - Consider branding these */
@@ -58,9 +57,10 @@ export type EntityTemporalVersioningMetadata = Record<
 export type EntityMetadata<TemporalSupport extends boolean> = {
   recordId: EntityRecordId;
   entityTypeId: VersionedUri;
-} & (TemporalSupport extends true
-  ? { temporalVersioning: EntityTemporalVersioningMetadata }
-  : {});
+  temporalVersioning: TemporalSupport extends true
+    ? EntityTemporalVersioningMetadata
+    : never;
+};
 
 export type LinkData = {
   leftToRightOrder?: number;
@@ -78,7 +78,8 @@ export type Entity<
 > = {
   metadata: EntityMetadata<TemporalSupport>;
   linkData?: LinkData;
-} & (Properties extends null ? {} : { properties: Properties });
+  properties: Properties extends null ? never : Properties;
+};
 
 export type LinkEntityAndRightEntity<TemporalSupport extends boolean> = {
   linkEntity: Entity<TemporalSupport>;
@@ -94,9 +95,10 @@ export type CreateEntityData = {
 export type GetEntityData<TemporalSupport extends boolean> = {
   entityId: EntityId;
   graphResolveDepths?: GraphResolveDepths;
-} & (TemporalSupport extends true
-  ? { temporalAxes: UnresolvedQueryTemporalAxes }
-  : {});
+  temporalAxes: TemporalSupport extends true
+    ? UnresolvedQueryTemporalAxes
+    : never;
+};
 
 export type UpdateEntityData = {
   entityId: EntityId;

@@ -16,7 +16,10 @@ import {
   LinkEntityAndRightEntity,
   Subgraph,
 } from "./index.js";
-import { getOutgoingLinkAndTargetEntities, getRoots } from "./stdlib.js";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "./stdlib-temporal.js";
 
 export type BlockComponent<
   TemporalSupport extends boolean,
@@ -132,11 +135,10 @@ export const useEntitySubgraph = <
       throw new Error("Root entity not present in subgraph");
     }
 
-    const linkedEntities =
-      getOutgoingLinkAndTargetEntities<RootEntityLinkedEntities>(
-        entitySubgraph,
-        rootEntity.metadata.recordId.entityId,
-      );
+    const linkedEntities = getOutgoingLinkAndTargetEntities<
+      TemporalSupport,
+      RootEntityLinkedEntities
+    >(entitySubgraph, rootEntity.metadata.recordId.entityId);
 
     return {
       rootEntity,

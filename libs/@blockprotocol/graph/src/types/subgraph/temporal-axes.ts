@@ -37,8 +37,7 @@ export type UnresolvedQueryTemporalAxes =
  * The {@link VariableTemporalAxis} is bounded according to the input of the query (where absent bounds in the input are
  * interpreted as described in the docs for {@link UnresolvedQueryTemporalAxes})
  */
-export type ResolvedQueryTemporalAxes = Subtype<
-  UnresolvedQueryTemporalAxes,
+export type ResolvedQueryTemporalAxes =
   | {
       variable: VariableTemporalAxis<
         "decisionTime",
@@ -54,8 +53,7 @@ export type ResolvedQueryTemporalAxes = Subtype<
         TemporalBound
       >;
       pinned: PinnedTemporalAxis<"decisionTime">;
-    }
->;
+    };
 
 /**
  * Denotes the temporal axes used in constructing the {@link Subgraph}.

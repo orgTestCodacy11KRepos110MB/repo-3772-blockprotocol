@@ -53,6 +53,16 @@ export type TimeInterval<
   end: EndBound;
 };
 
+export type NonNullTimeInterval<
+  StartBound extends TemporalBound = TemporalBound,
+  EndBound extends TemporalBound = TemporalBound,
+> = TimeInterval<StartBound, EndBound>;
+
+export type BoundedTimeInterval = TimeInterval<
+  TimestampLimitedTemporalBound,
+  TimestampLimitedTemporalBound
+>;
+
 /**
  * A representation of a "variable" temporal axis, which is optionally bounded to a given {@link TimeInterval}.
  *

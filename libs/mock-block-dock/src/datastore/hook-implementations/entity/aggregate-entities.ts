@@ -75,7 +75,7 @@ export const aggregateEntities = <TemporalSupport extends boolean>(
   TemporalSupport,
   EntityRootedSubgraph<TemporalSupport>
 > => {
-  if ("temporalAxes" in data) {
+  if (data.temporalAxes !== undefined) {
     return aggregateEntitiesImpl(
       data as AggregateEntitiesData<true>,
       graph,

@@ -1,5 +1,4 @@
 import {
-  AggregateEntitiesData,
   EntityRootedSubgraph,
   GetEntityData,
   Subgraph,
@@ -30,25 +29,30 @@ export const getEntityImpl = (
     return undefined;
   }
 
-  const subgraph = {
-    /** @todo - This is temporary, and wrong */
+  const subgraph: EntityRootedSubgraph<true> = {
     roots: [
       {
         baseId: entityRevision.metadata.recordId.entityId,
-        revisionId: entityRevision.metadata.recordId.editionId,
+        revisionId:
+          entityRevision.metadata.temporalVersioning[
+            resolvedTemporalAxes.variable.axis
+          ].start.limit,
       },
     ],
     vertices: {},
     edges: {},
     depths: graphResolveDepths,
+    temporalAxes: { initial: temporalAxes, resolved: resolvedTemporalAxes },
   };
 
   traverseElement(
     subgraph,
-    /** @todo - This is temporary, and wrong */
     {
       baseId: entityRevision.metadata.recordId.entityId,
-      revisionId: entityRevision.metadata.recordId.editionId,
+      revisionId:
+        entityRevision.metadata.temporalVersioning[
+          resolvedTemporalAxes.variable.axis
+        ].start.limit,
     },
     graph,
     new TraversalContext(graph),
@@ -62,7 +66,7 @@ export const getEntity = <TemporalSupport extends boolean>(
   data: GetEntityData<TemporalSupport>,
   graph: Subgraph<true>,
 ): EntityRootedSubgraph<TemporalSupport> | undefined => {
-  if ("temporalAxes" in data) {
+  if (data.temporalAxes !== undefined) {
     return getEntityImpl(data as GetEntityData<true>, graph) as
       | EntityRootedSubgraph<TemporalSupport>
       | undefined;

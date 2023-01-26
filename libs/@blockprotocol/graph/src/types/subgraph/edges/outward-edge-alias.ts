@@ -5,7 +5,7 @@
 import { Subtype } from "../../../util.js";
 import { OntologyTypeVertexId } from "../vertices";
 import {
-  EntityIdAndTimestamp,
+  EntityValidInterval,
   KnowledgeGraphOutwardEdge,
   OntologyOutwardEdge,
   OutwardEdge,
@@ -16,7 +16,7 @@ export type OutgoingLinkEdge = Subtype<
   {
     reversed: true;
     kind: "HAS_LEFT_ENTITY";
-    rightEndpoint: EntityIdAndTimestamp;
+    rightEndpoint: EntityValidInterval;
   }
 >;
 
@@ -31,7 +31,7 @@ export type HasLeftEntityEdge = Subtype<
   {
     reversed: false;
     kind: "HAS_LEFT_ENTITY";
-    rightEndpoint: EntityIdAndTimestamp;
+    rightEndpoint: EntityValidInterval;
   }
 >;
 
@@ -46,7 +46,7 @@ export type HasRightEntityEdge = Subtype<
   {
     reversed: false;
     kind: "HAS_RIGHT_ENTITY";
-    rightEndpoint: EntityIdAndTimestamp;
+    rightEndpoint: EntityValidInterval;
   }
 >;
 
@@ -61,7 +61,7 @@ export type IncomingLinkEdge = Subtype<
   {
     reversed: true;
     kind: "HAS_RIGHT_ENTITY";
-    rightEndpoint: EntityIdAndTimestamp;
+    rightEndpoint: EntityValidInterval;
   }
 >;
 

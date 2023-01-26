@@ -83,8 +83,12 @@ export type Entity<
 };
 
 export type LinkEntityAndRightEntity<TemporalSupport extends boolean> = {
-  linkEntity: Entity<TemporalSupport>;
-  rightEntity: Entity<TemporalSupport>;
+  linkEntity: TemporalSupport extends true
+    ? Entity<TemporalSupport>[]
+    : Entity<TemporalSupport>;
+  rightEntity: TemporalSupport extends true
+    ? Entity<TemporalSupport>[]
+    : Entity<TemporalSupport>;
 };
 
 export type CreateEntityData = {

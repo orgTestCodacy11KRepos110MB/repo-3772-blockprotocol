@@ -1,8 +1,11 @@
-import { Entity } from "./entity.js";
+import { VersionedUri } from "@blockprotocol/type-system";
+
+import { Entity, EntityRecordId } from "./entity.js";
+import { OntologyTypeRecordId } from "./ontology";
 import { DataTypeWithMetadata } from "./ontology/data-type.js";
 import { EntityTypeWithMetadata } from "./ontology/entity-type.js";
 import { PropertyTypeWithMetadata } from "./ontology/property-type.js";
-import { Edges } from "./subgraph/edges.js";
+import { Edges, EntityIdAndTimestamp } from "./subgraph/edges.js";
 import { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 import { SubgraphTemporalAxes } from "./subgraph/temporal-axes";
 import {
@@ -62,3 +65,27 @@ export type PropertyTypeRootedSubgraph<TemporalSupport extends boolean> =
   Subgraph<TemporalSupport, SubgraphRootTypes<TemporalSupport>["propertyType"]>;
 export type EntityTypeRootedSubgraph<TemporalSupport extends boolean> =
   Subgraph<TemporalSupport, SubgraphRootTypes<TemporalSupport>["entityType"]>;
+
+/**
+ * A utility type that maps various ways of identifying a single element of the graph to their associated types.
+ *
+ * Helpful when creating generic functions that operate over a {@link Subgraph}
+ */
+export type GraphElementIdentifiers<TemporalSupport extends boolean> = {
+  dataType: {
+    identifier: VersionedUri | OntologyTypeVertexId | OntologyTypeRecordId;
+    element: DataTypeWithMetadata;
+  };
+  propertyType: {
+    identifier: VersionedUri | OntologyTypeVertexId | OntologyTypeRecordId;
+    element: PropertyTypeWithMetadata;
+  };
+  entityType: {
+    identifier: VersionedUri | OntologyTypeVertexId | OntologyTypeRecordId;
+    element: EntityTypeWithMetadata;
+  };
+  entity: {
+    identifier: EntityIdAndTimestamp | EntityVertexId | EntityRecordId;
+    element: Entity<TemporalSupport>;
+  };
+};

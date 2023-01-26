@@ -37,7 +37,7 @@ export type EntityIdAndTimestamp = {
 
 export type EntityValidInterval = {
   entityId: EntityId;
-  valid: TimeInterval<TimestampLimitedTemporalBound, TemporalBound>;
+  validInterval: TimeInterval<TimestampLimitedTemporalBound, TemporalBound>;
 };
 
 export type OntologyOutwardEdge =

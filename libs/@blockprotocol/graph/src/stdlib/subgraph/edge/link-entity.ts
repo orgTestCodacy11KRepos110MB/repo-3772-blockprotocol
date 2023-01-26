@@ -1,3 +1,4 @@
+import { typedEntries } from "../../../codegen/shared.js";
 import {
   Entity,
   EntityId,
@@ -6,13 +7,18 @@ import {
   isIncomingLinkEdge,
   isOutgoingLinkEdge,
   LinkEntityAndRightEntity,
-  OutgoingLinkEdge,
+  NonNullTimeInterval,
   OutwardEdge,
   Subgraph,
   Timestamp,
 } from "../../../index.js";
+import { compareBounds } from "../../bound.js";
+import {
+  getLatestInstantIntervalForSubgraph,
+  intervalIntersectionWithInterval,
+} from "../../interval.js";
 import { mustBeDefined } from "../../must-be-defined.js";
-import { getEntity } from "../element/entity.js";
+import { getEntityRevisionsByEntityId } from "../element/entity.js";
 
 const convertTimeToStringWithDefault = (timestamp?: Date | Timestamp) => {
   return timestamp === undefined
@@ -35,22 +41,25 @@ const getUniqueEntitiesFilter = <TemporalSupport extends boolean>() => {
   };
 };
 
-/** @todo - Update these methods to take intervals instead of timestamps */
-
 /**
- * For a given moment in time, get all outgoing link entities from a given entity.
+ * Get all outgoing link entities from a given entity.
  *
- * @param subgraph
+ * @param {Subgraph} subgraph
  * @param {EntityId} entityId - The ID of the source entity to search for outgoing links from
- * @param {Date | Timestamp} [timestamp] - An optional `Date` or an ISO-formatted datetime string of the moment to search
- *    for, if not supplied it defaults to the current time
+ * @param {NonNullTimeInterval} [interval] - An optional {@link NonNullTimeInterval} which, when provided with a
+ *  {@link Subgraph} that supports temporal versioning, will constrain the results to links that were present during
+ *  that interval. If the parameter is omitted then results will default to only returning results that are active in
+ *  the latest instant of time in the {@link Subgraph}
  */
 export const getOutgoingLinksForEntity = <TemporalSupport extends boolean>(
   subgraph: Subgraph<TemporalSupport>,
   entityId: EntityId,
-  timestamp?: Date | Timestamp,
+  interval?: TemporalSupport extends true ? NonNullTimeInterval : never,
 ): Entity<TemporalSupport>[] => {
-  const timestampString = convertTimeToStringWithDefault(timestamp);
+  const searchInterval =
+    interval !== undefined
+      ? interval
+      : getLatestInstantIntervalForSubgraph(subgraph);
 
   const entityEdges = subgraph.edges[entityId];
 
@@ -62,11 +71,18 @@ export const getOutgoingLinksForEntity = <TemporalSupport extends boolean>(
 
   return (
     Object.entries(entityEdges)
-      // Only look at outgoing edges that were created before or at the timestamp
+      // Only look at outgoing edges that were created before or within the search interval
       .filter(
-        ([edgeTimestamp, _outwardEdges]) => edgeTimestamp <= timestampString,
+        ([edgeTimestamp, _outwardEdges]) =>
+          compareBounds(
+            { kind: "inclusive", limit: edgeTimestamp },
+            searchInterval.end,
+            /** @todo - should this be end */
+            "start",
+            "end",
+          ) <= 0,
       )
-      // Extract the link `EntityRecordId`s from the endpoints of the link edges
+      // Extract the link endpoint information
       .flatMap(([_edgeTimestamp, outwardEdges]) => {
         return (outwardEdges as OutwardEdge[])
           .filter(isOutgoingLinkEdge)
@@ -74,34 +90,55 @@ export const getOutgoingLinksForEntity = <TemporalSupport extends boolean>(
             return edge.rightEndpoint;
           });
       })
-      .map(({ baseId: linkEntityId, timestamp: _firstRevisionTimestamp }) => {
-        return mustBeDefined(
-          getEntity(
-            subgraph,
+      .flatMap(({ entityId: linkEntityId, validInterval }) => {
+        if (subgraph.temporalAxes !== undefined) {
+          // Find the revisions of the link at the intersection of the search interval and the edge's valid interval
+          const intersection = intervalIntersectionWithInterval(
+            searchInterval,
+            validInterval,
+          );
+
+          if (intersection === null) {
+            throw new Error(
+              `No entity revision was found which overlapped the given edge, subgraph was likely malformed.\n` +
+                `EntityId: ${linkEntityId}\n` +
+                `Search Interval: ${JSON.stringify(searchInterval)}\n` +
+                `Edge Valid Interval: ${JSON.stringify(validInterval)}`,
+            );
+          }
+
+          return getEntityRevisionsByEntityId(
+            subgraph as Subgraph<true>,
             linkEntityId,
-            // Find the revision of the link at the given moment (not at `_firstRevisionTimestamp`, the start of its history)
-            timestampString,
-          ),
-        );
+            intersection,
+          ) as Entity<TemporalSupport>[];
+        } else {
+          return getEntityRevisionsByEntityId(subgraph, linkEntityId);
+        }
       })
       .filter(uniqueEntitiesFilter)
   );
 };
 
 /**
- * For a given moment in time, get all incoming link entities from a given entity.
+ * Get all incoming link entities from a given entity.
  *
- * @param subgraph
+ * @param {Subgraph} subgraph
  * @param {EntityId} entityId - The ID of the source entity to search for incoming links to
- * @param {Date | Timestamp} [timestamp] - An optional `Date` or an ISO-formatted datetime string of the moment to search
- *    for, if not supplied it defaults to the current time
+ * @param {NonNullTimeInterval} [interval] - An optional {@link NonNullTimeInterval} which, when provided with a
+ *  {@link Subgraph} that supports temporal versioning, will constrain the results to links that were present during
+ *  that interval. If the parameter is omitted then results will default to only returning results that are active in
+ *  the latest instant of time in the {@link Subgraph}
  */
 export const getIncomingLinksForEntity = <TemporalSupport extends boolean>(
   subgraph: Subgraph<TemporalSupport>,
   entityId: EntityId,
-  timestamp?: Date | Timestamp,
+  interval?: TemporalSupport extends true ? NonNullTimeInterval : never,
 ): Entity<TemporalSupport>[] => {
-  const timestampString = convertTimeToStringWithDefault(timestamp);
+  const searchInterval =
+    interval !== undefined
+      ? interval
+      : getLatestInstantIntervalForSubgraph(subgraph);
 
   const entityEdges = subgraph.edges[entityId];
 
@@ -113,90 +150,175 @@ export const getIncomingLinksForEntity = <TemporalSupport extends boolean>(
 
   return (
     Object.entries(entityEdges)
-      // Only look at edges that were created before or at the timestamp
+      // Only look at outgoing edges that were created before or within the search interval
       .filter(
-        ([edgeTimestamp, _outwardEdges]) => edgeTimestamp <= timestampString,
+        ([edgeTimestamp, _outwardEdges]) =>
+          compareBounds(
+            { kind: "inclusive", limit: edgeTimestamp },
+            searchInterval.end,
+            /** @todo - should this be end */
+            "start",
+            "end",
+          ) <= 0,
       )
-      // Extract the link `EntityRecordId`s from the endpoints of the link edges
+      // Extract the link endpoint information
       .flatMap(([_edgeTimestamp, outwardEdges]) => {
-        return (outwardEdges as OutgoingLinkEdge[])
+        return (outwardEdges as OutwardEdge[])
           .filter(isIncomingLinkEdge)
           .map((edge) => {
             return edge.rightEndpoint;
           });
       })
-      .map(({ baseId: linkEntityId, timestamp: _firstRevisionTimestamp }) => {
-        return mustBeDefined(
-          getEntity(
-            subgraph,
+      .flatMap(({ entityId: linkEntityId, validInterval }) => {
+        if (subgraph.temporalAxes !== undefined) {
+          // Find the revisions of the link at the intersection of the search interval and the edge's valid interval
+          const intersection = intervalIntersectionWithInterval(
+            searchInterval,
+            validInterval,
+          );
+
+          if (intersection === null) {
+            throw new Error(
+              `No entity revision was found which overlapped the given edge, subgraph was likely malformed.\n` +
+                `EntityId: ${linkEntityId}\n` +
+                `Search Interval: ${JSON.stringify(searchInterval)}\n` +
+                `Edge Valid Interval: ${JSON.stringify(validInterval)}`,
+            );
+          }
+
+          return getEntityRevisionsByEntityId(
+            subgraph as Subgraph<true>,
             linkEntityId,
-            // Find the revision of the link at the given moment (not at `_firstRevisionTimestamp`, the start of its history)
-            timestampString,
-          ),
-        );
+            intersection,
+          ) as Entity<TemporalSupport>[];
+        } else {
+          return getEntityRevisionsByEntityId(subgraph, linkEntityId);
+        }
       })
       .filter(uniqueEntitiesFilter)
   );
 };
 
 /**
- * For a given moment in time, get the "left entity" (by default this is the "source") of a given link entity.
+ * Get the "left entity" revisions (by default this is the "source") of a given link entity.
  *
- * @param subgraph
+ * @param {Subgraph} subgraph
  * @param {EntityId} entityId - The ID of the link entity
- * @param {Date | Timestamp} [timestamp] - An optional `Date` or an ISO-formatted datetime string of the moment to search
- *    for, if not supplied it defaults to the current time
+ * @param {NonNullTimeInterval} [interval] - An optional {@link NonNullTimeInterval} which, when provided with a
+ *  {@link Subgraph} that supports temporal versioning, will constrain the results to links that were present during
+ *  that interval. If the parameter is omitted then results will default to only returning results that are active in
+ *  the latest instant of time in the {@link Subgraph}
  */
 export const getLeftEntityForLinkEntity = <TemporalSupport extends boolean>(
   subgraph: Subgraph<TemporalSupport>,
   entityId: EntityId,
-  timestamp?: Date | Timestamp,
-): Entity<TemporalSupport> => {
+  interval?: TemporalSupport extends true ? NonNullTimeInterval : never,
+): Entity<TemporalSupport>[] => {
+  const searchInterval =
+    interval !== undefined
+      ? interval
+      : getLatestInstantIntervalForSubgraph(subgraph);
+
   const linkEntityEdges = mustBeDefined(
     subgraph.edges[entityId],
     "link entities must have left endpoints and therefore must have edges",
   );
 
-  const endpointEntityId = mustBeDefined(
-    Object.values(linkEntityEdges).flat().find(isHasLeftEntityEdge)
-      ?.rightEndpoint.baseId,
+  const outwardEdge = mustBeDefined(
+    Object.values(linkEntityEdges).flat().find(isHasLeftEntityEdge),
     "link entities must have left endpoints",
   );
 
-  return mustBeDefined(
-    getEntity(subgraph, endpointEntityId, timestamp),
-    "all edge endpoints should have a corresponding vertex",
-  );
+  const leftEntityId = outwardEdge.rightEndpoint.entityId;
+
+  if (subgraph.temporalAxes !== undefined) {
+    const { validInterval } = outwardEdge.rightEndpoint;
+    const intersection = intervalIntersectionWithInterval(
+      searchInterval,
+      validInterval,
+    );
+
+    if (intersection === null) {
+      throw new Error(
+        `No entity revision was found which overlapped the given edge, subgraph was likely malformed.\n` +
+          `EntityId: ${leftEntityId}\n` +
+          `Search Interval: ${JSON.stringify(searchInterval)}\n` +
+          `Edge Valid Interval: ${JSON.stringify(validInterval)}`,
+      );
+    }
+
+    return getEntityRevisionsByEntityId(
+      subgraph as Subgraph<true>,
+      leftEntityId,
+      intersection,
+    ) as Entity<TemporalSupport>[];
+  } else {
+    return getEntityRevisionsByEntityId(
+      subgraph as Subgraph<true>,
+      leftEntityId,
+    ) as Entity<TemporalSupport>[];
+  }
 };
 
 /**
- * For a given moment in time, get the "right entity" (by default this is the "target") of a given link entity.
+ * Get the "right entity" revisions (by default this is the "target") of a given link entity.
  *
- * @param subgraph
+ * @param {Subgraph} subgraph
  * @param {EntityId} entityId - The ID of the link entity
- * @param {Date | Timestamp} [timestamp] - An optional `Date` or an ISO-formatted datetime string of the moment to search
- *    for, if not supplied it defaults to the current time
+ * @param {NonNullTimeInterval} [interval] - An optional {@link NonNullTimeInterval} which, when provided with a
+ *  {@link Subgraph} that supports temporal versioning, will constrain the results to links that were present during
+ *  that interval. If the parameter is omitted then results will default to only returning results that are active in
+ *  the latest instant of time in the {@link Subgraph}
  */
 export const getRightEntityForLinkEntity = <TemporalSupport extends boolean>(
   subgraph: Subgraph<TemporalSupport>,
   entityId: EntityId,
-  timestamp?: Date | Timestamp,
-): Entity<TemporalSupport> => {
+  interval?: TemporalSupport extends true ? NonNullTimeInterval : never,
+): Entity<TemporalSupport>[] => {
+  const searchInterval =
+    interval !== undefined
+      ? interval
+      : getLatestInstantIntervalForSubgraph(subgraph);
+
   const linkEntityEdges = mustBeDefined(
     subgraph.edges[entityId],
     "link entities must have right endpoints and therefore must have edges",
   );
 
-  const endpointEntityId = mustBeDefined(
-    Object.values(linkEntityEdges).flat().find(isHasRightEntityEdge)
-      ?.rightEndpoint.baseId,
+  const outwardEdge = mustBeDefined(
+    Object.values(linkEntityEdges).flat().find(isHasRightEntityEdge),
     "link entities must have right endpoints",
   );
 
-  return mustBeDefined(
-    getEntity(subgraph, endpointEntityId, timestamp),
-    "all edge endpoints should have a corresponding vertex",
-  );
+  const rightEntityId = outwardEdge.rightEndpoint.entityId;
+
+  if (subgraph.temporalAxes !== undefined) {
+    const { validInterval } = outwardEdge.rightEndpoint;
+    const intersection = intervalIntersectionWithInterval(
+      searchInterval,
+      validInterval,
+    );
+
+    if (intersection === null) {
+      throw new Error(
+        `No entity revision was found which overlapped the given edge, subgraph was likely malformed.\n` +
+          `EntityId: ${rightEntityId}\n` +
+          `Search Interval: ${JSON.stringify(searchInterval)}\n` +
+          `Edge Valid Interval: ${JSON.stringify(validInterval)}`,
+      );
+    }
+
+    return getEntityRevisionsByEntityId(
+      subgraph as Subgraph<true>,
+      rightEntityId,
+      intersection,
+    ) as Entity<TemporalSupport>[];
+  } else {
+    return getEntityRevisionsByEntityId(
+      subgraph as Subgraph<true>,
+      rightEntityId,
+    ) as Entity<TemporalSupport>[];
+  }
 };
 
 /**
@@ -205,8 +327,9 @@ export const getRightEntityForLinkEntity = <TemporalSupport extends boolean>(
  *
  * @param subgraph
  * @param {EntityId} entityId - The ID of the source entity to search for outgoing links from
- * @param {Date | Timestamp} [timestamp] - An optional `Date` or an ISO-formatted datetime string of the moment to search
- *    for, if not supplied it defaults to the current time
+ * @param {Date | Timestamp} [timestamp] - An optional `Date` or an ISO-formatted datetime string of the moment to
+ *    search for. If the parameter is omitted then results will default to only returning results that are active in
+ *    the latest instant of time in the {@link Subgraph}
  */
 export const getOutgoingLinkAndTargetEntities = <
   TemporalSupport extends boolean,
@@ -214,18 +337,75 @@ export const getOutgoingLinkAndTargetEntities = <
 >(
   subgraph: Subgraph<TemporalSupport>,
   entityId: EntityId,
-  timestamp?: Date | Timestamp,
+  timestamp?: TemporalSupport extends true ? Date | Timestamp : never,
 ): LinkAndRightEntities => {
-  return getOutgoingLinksForEntity(subgraph, entityId, timestamp).map(
-    (linkEntity) => {
-      return {
-        linkEntity,
-        rightEntity: getRightEntityForLinkEntity(
-          subgraph,
+  const searchInterval =
+    timestamp !== undefined
+      ? ({
+          start: {
+            kind: "inclusive",
+            limit: convertTimeToStringWithDefault(timestamp),
+          },
+          end: {
+            kind: "inclusive",
+            limit: convertTimeToStringWithDefault(timestamp),
+          },
+        } as const)
+      : getLatestInstantIntervalForSubgraph(subgraph);
+
+  if (subgraph.temporalAxes !== undefined) {
+    const outgoingLinkEntities = getOutgoingLinksForEntity(
+      subgraph as Subgraph<true>,
+      entityId,
+      searchInterval,
+    );
+    const mappedRevisions = outgoingLinkEntities.reduce(
+      (revisionMap, entity) => {
+        const linkEntityId = entity.metadata.recordId.entityId;
+
+        if (revisionMap[linkEntityId] !== undefined) {
+          revisionMap[linkEntityId]!.push(entity);
+        } else {
+          // eslint-disable-next-line no-param-reassign
+          revisionMap[linkEntityId] = [entity];
+        }
+
+        return revisionMap;
+      },
+      {} as Record<EntityId, Entity<true>[]>,
+    );
+
+    return typedEntries(mappedRevisions).map(
+      ([linkEntityId, linkEntityRevisions]) => {
+        return {
+          linkEntity: linkEntityRevisions,
+          rightEntity: getRightEntityForLinkEntity(
+            subgraph as Subgraph<true>,
+            linkEntityId,
+            searchInterval,
+          ),
+        };
+      },
+    ) as LinkAndRightEntities; // @todo consider fixing generics in functions called within
+  } else {
+    return getOutgoingLinksForEntity(subgraph as Subgraph<false>, entityId).map(
+      (linkEntity) => {
+        const rightEntityRevisions = getRightEntityForLinkEntity(
+          subgraph as Subgraph<false>,
           linkEntity.metadata.recordId.entityId,
-          timestamp,
-        ),
-      };
-    },
-  ) as LinkAndRightEntities; // @todo consider fixing generics in functions called within
+        );
+
+        if (rightEntityRevisions.length !== 1) {
+          throw new Error(
+            `Querying a Subgraph without support for temporal versioning but there wasn't a unique revision for the right entity with ID: ${linkEntity.metadata.recordId.entityId}`,
+          );
+        }
+
+        return {
+          linkEntity,
+          rightEntity: rightEntityRevisions[0],
+        };
+      },
+    ) as LinkAndRightEntities; // @todo consider fixing generics in functions called within
+  }
 };

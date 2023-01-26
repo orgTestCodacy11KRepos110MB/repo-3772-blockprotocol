@@ -11,7 +11,7 @@ import {
 import { Vertex } from "../../types/subgraph/vertices.js";
 import { mustBeDefined } from "../must-be-defined.js";
 import { getDataTypeByVertexId } from "./element/data-type.js";
-import { getEntity } from "./element/entity.js";
+import { getEntityRevision } from "./element/entity.js";
 import { getEntityTypeByVertexId } from "./element/entity-type.js";
 import { getPropertyTypeByVertexId } from "./element/property-type.js";
 
@@ -145,12 +145,25 @@ export const isEntityRootedSubgraph = <TemporalSupport extends boolean>(
       return false;
     }
 
-    mustBeDefined(
-      getEntity(subgraph, rootVertexId.baseId, rootVertexId.revisionId),
-      `roots should have corresponding vertices but ${JSON.stringify(
-        rootVertexId,
-      )} was missing`,
-    );
+    if (subgraph.temporalAxes !== undefined) {
+      mustBeDefined(
+        getEntityRevision(
+          subgraph as Subgraph<true>,
+          rootVertexId.baseId,
+          rootVertexId.revisionId,
+        ),
+        `roots should have corresponding vertices but ${JSON.stringify(
+          rootVertexId,
+        )} was missing`,
+      );
+    } else {
+      mustBeDefined(
+        getEntityRevision(subgraph as Subgraph<false>, rootVertexId.baseId),
+        `roots should have corresponding vertices but ${JSON.stringify(
+          rootVertexId,
+        )} was missing`,
+      );
+    }
   }
 
   return true;

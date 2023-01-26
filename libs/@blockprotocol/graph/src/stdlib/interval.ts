@@ -1,12 +1,18 @@
+import { Subgraph } from "../index.js";
 import {
   BoundedTimeInterval,
   NonNullTimeInterval,
   TemporalBound,
   Timestamp,
   TimestampLimitedTemporalBound,
-} from "../types/temporal-versioning";
-import { boundIsAdjacentTo, compareBounds } from "./bound";
+} from "../types/temporal-versioning.js";
+import { boundIsAdjacentTo, compareBounds } from "./bound.js";
 
+/**
+ * @todo - doc
+ * @param lhs
+ * @param rhs
+ */
 export const intervalIsAdjacentToInterval = (
   lhs: NonNullTimeInterval,
   rhs: NonNullTimeInterval,
@@ -17,6 +23,11 @@ export const intervalIsAdjacentToInterval = (
   );
 };
 
+/**
+ * @todo - doc
+ * @param lhs
+ * @param rhs
+ */
 export const intervalContainsInterval = (
   lhs: NonNullTimeInterval,
   rhs: NonNullTimeInterval,
@@ -27,6 +38,11 @@ export const intervalContainsInterval = (
   );
 };
 
+/**
+ * @todo - doc
+ * @param interval
+ * @param timestamp
+ */
 export const intervalContainsTimestamp = (
   interval: NonNullTimeInterval,
   timestamp: Timestamp,
@@ -47,6 +63,11 @@ export const intervalContainsTimestamp = (
   );
 };
 
+/**
+ * @todo - doc
+ * @param lhs
+ * @param rhs
+ */
 export const intervalOverlapsInterval = (
   lhs: NonNullTimeInterval,
   rhs: NonNullTimeInterval,
@@ -59,8 +80,11 @@ export const intervalOverlapsInterval = (
   );
 };
 
-// If *either* of the start bounds is bounded, then the resultant start bound will be bounded, same goes for end
-// respectively
+/**
+ * @todo - doc
+ * If *either* of the start bounds is bounded, then the resultant start bound will be bounded, same goes for end
+ * respectively
+ */
 type IntersectionReturn<
   LhsInterval extends NonNullTimeInterval,
   RhsInterval extends NonNullTimeInterval,
@@ -99,8 +123,12 @@ export const intervalIntersectionWithInterval = <
   }
 };
 
-// If *both* of the start bounds are bounded, then the resultant start bound will be bounded, same goes for end
-// respectively
+/**
+ * @todo - doc
+ *
+ * If *both* of the start bounds are bounded, then the resultant start bound will be bounded, same goes for end
+ * respectively
+ */
 type MergeReturn<
   LhsInterval extends NonNullTimeInterval,
   RhsInterval extends NonNullTimeInterval,
@@ -122,6 +150,11 @@ type MergeReturn<
     >
   : never;
 
+/**
+ * @todo - doc
+ * @param lhs
+ * @param rhs
+ */
 export const intervalMergeWithInterval = <
   LhsInterval extends NonNullTimeInterval = NonNullTimeInterval,
   RhsInterval extends NonNullTimeInterval = NonNullTimeInterval,
@@ -146,6 +179,11 @@ type UnionReturn<
   | [LhsInterval, RhsInterval]
   | [RhsInterval, LhsInterval];
 
+/**
+ * @todo - doc
+ * @param lhs
+ * @param rhs
+ */
 export const intervalUnionWithInterval = <
   LhsInterval extends NonNullTimeInterval = NonNullTimeInterval,
   RhsInterval extends NonNullTimeInterval = NonNullTimeInterval,
@@ -165,6 +203,10 @@ export const intervalUnionWithInterval = <
   }
 };
 
+/**
+ * @todo - doc
+ * @param intervals
+ */
 export const unionOfIntervals = <IntervalsType extends NonNullTimeInterval>(
   ...intervals: IntervalsType[]
 ): UnionReturn<IntervalsType, IntervalsType>[number][] => {
@@ -194,4 +236,38 @@ export const unionOfIntervals = <IntervalsType extends NonNullTimeInterval>(
       ];
     }
   }, [] as UnionReturn<IntervalsType, IntervalsType>[number][]);
+};
+
+// Separated out to improve the ergonomics of the `as` cast in the function, which is required due to limitations of TS
+type LatestInstantInterval<TemporalSupport extends boolean> =
+  TemporalSupport extends true ? BoundedTimeInterval : NonNullTimeInterval;
+
+export const getLatestInstantIntervalForSubgraph = <
+  TemporalSupport extends boolean,
+>(
+  subgraph: Subgraph<TemporalSupport>,
+): LatestInstantInterval<TemporalSupport> => {
+  if (subgraph.temporalAxes !== undefined) {
+    const subgraphEndBound =
+      subgraph.temporalAxes.resolved.variable.interval.end;
+    return {
+      start: {
+        kind: "inclusive",
+        limit: subgraphEndBound.limit,
+      },
+      end: {
+        kind: "inclusive",
+        limit: subgraphEndBound.limit,
+      },
+    };
+  } else {
+    return {
+      start: {
+        kind: "unbounded",
+      },
+      end: {
+        kind: "unbounded",
+      },
+    } as LatestInstantInterval<TemporalSupport>;
+  }
 };

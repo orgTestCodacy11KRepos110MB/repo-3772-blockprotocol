@@ -19,7 +19,10 @@ export {
   getDataTypes,
   getDataTypesByBaseUri,
 } from "./stdlib/subgraph/element/data-type.js";
-export { getEntities, getEntity } from "./stdlib/subgraph/element/entity.js";
+export {
+  getEntities,
+  getEntityRevision,
+} from "./stdlib/subgraph/element/entity.js";
 export {
   getEntityTypeById,
   getEntityTypes,

@@ -1,6 +1,7 @@
 /**
  * The base standard library of functions for interacting with a `Subgraph`.
  */
+import { mustBeDefined } from "./stdlib/must-be-defined";
 import { buildSubgraph as buildSubgraphGeneral } from "./stdlib/subgraph/builder.js";
 import {
   getIncomingLinksForEntity as getIncomingLinksForEntityTemporal,
@@ -11,7 +12,7 @@ import {
 } from "./stdlib/subgraph/edge/link-entity.js";
 import {
   getEntities as getEntitiesTemporal,
-  getEntity as getEntityTemporal,
+  getEntityRevision as getEntityTemporal,
 } from "./stdlib/subgraph/element/entity.js";
 import {
   Entity,
@@ -20,7 +21,6 @@ import {
   EntityRootedSubgraph,
   GraphResolveDepths,
   LinkEntityAndRightEntity,
-  ResolvedQueryTemporalAxes,
   Subgraph,
 } from "./types-non-temporal.js";
 
@@ -92,7 +92,8 @@ export const getIncomingLinksForEntity = (
 export const getLeftEntityForLinkEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-): Entity => getLeftEntityForLinkEntityTemporal(subgraph, entityId);
+): Entity =>
+  mustBeDefined(getLeftEntityForLinkEntityTemporal(subgraph, entityId).pop());
 
 /**
  * Gets the "right entity" (by default this is the "target") of a given link entity.
@@ -103,7 +104,8 @@ export const getLeftEntityForLinkEntity = (
 export const getRightEntityForLinkEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
-): Entity => getRightEntityForLinkEntityTemporal(subgraph, entityId);
+): Entity =>
+  mustBeDefined(getRightEntityForLinkEntityTemporal(subgraph, entityId).pop());
 
 /**
  * Gets all outgoing link entities, and their "target" entities (by default this is the "right entity"), from a given

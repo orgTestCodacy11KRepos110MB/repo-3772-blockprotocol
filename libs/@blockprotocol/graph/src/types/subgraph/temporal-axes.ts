@@ -1,7 +1,7 @@
-import { Subtype } from "../../util";
 import {
   PinnedTemporalAxis,
   TemporalBound,
+  TimestampLimitedTemporalBound,
   VariableTemporalAxis,
 } from "../temporal-versioning.js";
 
@@ -42,7 +42,7 @@ export type ResolvedQueryTemporalAxes =
       variable: VariableTemporalAxis<
         "decisionTime",
         TemporalBound,
-        TemporalBound
+        TimestampLimitedTemporalBound
       >;
       pinned: PinnedTemporalAxis<"transactionTime">;
     }
@@ -50,7 +50,7 @@ export type ResolvedQueryTemporalAxes =
       variable: VariableTemporalAxis<
         "transactionTime",
         TemporalBound,
-        TemporalBound
+        TimestampLimitedTemporalBound
       >;
       pinned: PinnedTemporalAxis<"decisionTime">;
     };

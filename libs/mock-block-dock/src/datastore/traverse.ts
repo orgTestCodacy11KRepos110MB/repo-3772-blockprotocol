@@ -37,6 +37,14 @@ type PatchEntityEdges<ToPatch extends unknown> = ToPatch extends object
 export type TraversalSubgraph<TemporalSupport extends boolean> =
   PatchEntityEdges<Subgraph<TemporalSupport>>;
 
+type GetNeighborsReturn<
+  EdgeKind extends keyof GraphResolveDepths,
+  Reversed extends boolean,
+> = GraphElementForIdentifier<
+  true,
+  Extract<OutwardEdge, { kind: EdgeKind; reversed: Reversed }>["rightEndpoint"]
+>[];
+
 export const getNeighbors = <
   EdgeKind extends keyof GraphResolveDepths,
   Reversed extends boolean,
@@ -46,59 +54,60 @@ export const getNeighbors = <
   edgeKind: EdgeKind,
   reversed: Reversed,
   interval: NonNullTimeInterval,
-): GraphElementForIdentifier<
-  true,
-  Extract<OutwardEdge, { kind: EdgeKind; reversed: Reversed }>["rightEndpoint"]
->[] => {
-  // Little hack for typescript, this is wrapped in a function with a return value to get type safety to ensure the
-  // switch statement is exhaustive. Try removing a case to see.
-  return ((): Vertex<true>[] => {
-    switch (edgeKind) {
-      case "hasLeftEntity": {
-        if (!isEntityVertex(source)) {
-          return [];
-        }
-
-        const { inner: sourceEntity } = source;
-
-        const entityId = sourceEntity.metadata.recordId.entityId;
-
-        if (reversed) {
-          // get outgoing links for entity
-          return getOutgoingLinksForEntity(datastore, entityId);
-        } else if (
-          sourceEntity.linkData?.leftEntityId !== undefined &&
-          sourceEntity.linkData?.rightEntityId !== undefined
-        ) {
-          // get left entity for link entity
-          return getLeftEntityForLinkEntity(datastore, entityId);
-        } else {
-          return [];
-        }
-      }
-      case "hasRightEntity": {
-        if (!isEntityVertex(source)) {
-          return [];
-        }
-
-        const { inner: sourceEntity } = source;
-
-        const entityId = sourceEntity.metadata.recordId.entityId;
-
-        if (reversed) {
-          // get incoming links for entity
-          return getIncomingLinksForEntity(datastore, entityId);
-        } else if (
-          sourceEntity.linkData?.leftEntityId !== undefined &&
-          sourceEntity.linkData?.rightEntityId !== undefined
-        ) {
-          // get right entity for link entity
-          return getRightEntityForLinkEntity(datastore, entityId);
-        }
+): GetNeighborsReturn<EdgeKind, Reversed> => {
+  switch (edgeKind) {
+    case "hasLeftEntity": {
+      if (!isEntityVertex(source)) {
         return [];
       }
+
+      const { inner: sourceEntity } = source;
+
+      const entityId = sourceEntity.metadata.recordId.entityId;
+
+      if (reversed) {
+        // get outgoing links for entity
+        return getOutgoingLinksForEntity(datastore, entityId, interval);
+      } else if (
+        sourceEntity.linkData?.leftEntityId !== undefined &&
+        sourceEntity.linkData?.rightEntityId !== undefined
+      ) {
+        // get left entity for link entity
+        return getLeftEntityForLinkEntity(datastore, entityId, interval);
+      }
+
+      return [];
     }
-  })();
+    case "hasRightEntity": {
+      if (!isEntityVertex(source)) {
+        return [];
+      }
+
+      const { inner: sourceEntity } = source;
+
+      const entityId = sourceEntity.metadata.recordId.entityId;
+
+      if (reversed) {
+        // get incoming links for entity
+        return getIncomingLinksForEntity(datastore, entityId, interval);
+      } else if (
+        sourceEntity.linkData?.leftEntityId !== undefined &&
+        sourceEntity.linkData?.rightEntityId !== undefined
+      ) {
+        // get right entity for link entity
+        return getRightEntityForLinkEntity(datastore, entityId, interval);
+      }
+
+      return [];
+    }
+  }
+
+  /**
+   * @todo - Unsure why this error is required, avoiding it would be good as TS would force us to be exhaustive in the
+   *   case statements, making sure we update this if we support more edge kinds. However, removing it complains about
+   *   lacking ending return statement otherwise
+   */
+  throw new Error(`Unknown edge kind: ${edgeKind}`);
 };
 
 export const traverseElementTemporal = ({
@@ -121,12 +130,11 @@ export const traverseElementTemporal = ({
 
   // `any` casts here are because TypeScript wants us to narrow the Identifier type before trusting us
   if (revisionsInTraversalSubgraph) {
-    (revisionsInTraversalSubgraph as any)[elementIdentifier.revisionId] =
-      element;
+    revisionsInTraversalSubgraph[elementIdentifier.revisionId] = element as any;
   } else {
-    // eslint-disable-next-line no-param-reassign -- The point of this function is to mutate the subgraph
-    (traversalSubgraph as any).vertices[elementIdentifier.baseId] = {
-      [elementIdentifier.revisionId]: element,
+    // eslint-disable-next-line no-param-reassign -- The point of this function is to mutate the traversal subgraph
+    traversalSubgraph.vertices[elementIdentifier.baseId] = {
+      [elementIdentifier.revisionId]: element as any,
     };
   }
 
@@ -137,11 +145,11 @@ export const traverseElementTemporal = ({
       if (depth < 1) {
         continue;
       }
-      for (const [neighborVertexId, neighborVertex] of getNeighbors(
+      for (const neighbor of getNeighbors(
         datastore,
-        elementIdentifier,
+        element,
         edgeKind,
-        direction,
+        direction === "incoming",
         interval,
       )) {
         let newIntersection;

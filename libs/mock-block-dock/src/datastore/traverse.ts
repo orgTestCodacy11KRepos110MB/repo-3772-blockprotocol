@@ -1,43 +1,121 @@
 import {
-  EntityId,
+  EntityIdAndTimestamp,
+  GraphElementForIdentifier,
   GraphElementVertexId,
   GraphResolveDepths,
-  HasLeftEntityEdge,
-  HasRightEntityEdge,
-  IncomingLinkEdge,
   isEntityVertex,
   NonNullTimeInterval,
-  OutgoingLinkEdge,
+  OutwardEdge,
   Subgraph,
   Vertex,
 } from "@blockprotocol/graph";
-import { addKnowledgeGraphEdgeToSubgraphByMutation } from "@blockprotocol/graph/internal";
 import { intervalIntersectionWithInterval } from "@blockprotocol/graph/src/stdlib/interval";
 import {
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
   getOutgoingLinksForEntity,
-} from "@blockprotocol/graph/stdlib";
-import { getRightEntityForLinkEntity } from "@blockprotocol/graph/stdlib-temporal";
+  getRightEntityForLinkEntity,
+} from "@blockprotocol/graph/stdlib-temporal";
 
 import { typedEntries } from "../util";
 
-export const getNeighbors = (
-  source: GraphElementVertexId,
-  edgeKind: keyof GraphResolveDepths,
-  direction: "incoming" | "outgoing",
+/**
+ * Advanced type to recursively search a type for `EntityIdAndTimestamp` and patch those occurrences by removing the
+ * definition of the "timestamp" property.
+ */
+type PatchEntityEdges<ToPatch extends unknown> = ToPatch extends object
+  ? ToPatch extends EntityIdAndTimestamp
+    ? Omit<EntityIdAndTimestamp, "timestamp">
+    : { [key in keyof ToPatch]: PatchEntityEdges<ToPatch[key]> }
+  : ToPatch;
+
+/**
+ * A patched {@link Subgraph} type which is partially incomplete. Entity-to-entity edges aren't fully specified, as
+ * to avoid many intermediary rewrites, the timestamps of the edges are filled in as a post-processing step and are left
+ * unspecified until then.
+ */
+export type TraversalSubgraph<TemporalSupport extends boolean> =
+  PatchEntityEdges<Subgraph<TemporalSupport>>;
+
+export const getNeighbors = <
+  EdgeKind extends keyof GraphResolveDepths,
+  Reversed extends boolean,
+>(
+  datastore: Subgraph<true>,
+  source: Vertex<true>,
+  edgeKind: EdgeKind,
+  reversed: Reversed,
   interval: NonNullTimeInterval,
-): [GraphElementVertexId, Vertex<true>][] => {
-  return [] as any;
+): GraphElementForIdentifier<
+  true,
+  Extract<OutwardEdge, { kind: EdgeKind; reversed: Reversed }>["rightEndpoint"]
+>[] => {
+  // Little hack for typescript, this is wrapped in a function with a return value to get type safety to ensure the
+  // switch statement is exhaustive. Try removing a case to see.
+  return ((): Vertex<true>[] => {
+    switch (edgeKind) {
+      case "hasLeftEntity": {
+        if (!isEntityVertex(source)) {
+          return [];
+        }
+
+        const { inner: sourceEntity } = source;
+
+        const entityId = sourceEntity.metadata.recordId.entityId;
+
+        if (reversed) {
+          // get outgoing links for entity
+          return getOutgoingLinksForEntity(datastore, entityId);
+        } else if (
+          sourceEntity.linkData?.leftEntityId !== undefined &&
+          sourceEntity.linkData?.rightEntityId !== undefined
+        ) {
+          // get left entity for link entity
+          return getLeftEntityForLinkEntity(datastore, entityId);
+        } else {
+          return [];
+        }
+      }
+      case "hasRightEntity": {
+        if (!isEntityVertex(source)) {
+          return [];
+        }
+
+        const { inner: sourceEntity } = source;
+
+        const entityId = sourceEntity.metadata.recordId.entityId;
+
+        if (reversed) {
+          // get incoming links for entity
+          return getIncomingLinksForEntity(datastore, entityId);
+        } else if (
+          sourceEntity.linkData?.leftEntityId !== undefined &&
+          sourceEntity.linkData?.rightEntityId !== undefined
+        ) {
+          // get right entity for link entity
+          return getRightEntityForLinkEntity(datastore, entityId);
+        }
+        return [];
+      }
+    }
+  })();
 };
 
-export const traverseElementTemporal = (
-  traversalSubgraph: Subgraph<true>,
-  element: Vertex<true>,
-  elementIdentifier: GraphElementVertexId,
-  interval: NonNullTimeInterval,
-  currentTraversalDepths: GraphResolveDepths,
-) => {
+export const traverseElementTemporal = ({
+  traversalSubgraph,
+  datastore,
+  element,
+  elementIdentifier,
+  interval,
+  currentTraversalDepths,
+}: {
+  traversalSubgraph: TraversalSubgraph<true>;
+  datastore: Subgraph<true>;
+  element: Vertex<true>;
+  elementIdentifier: GraphElementVertexId;
+  interval: NonNullTimeInterval;
+  currentTraversalDepths: GraphResolveDepths;
+}) => {
   const revisionsInTraversalSubgraph =
     traversalSubgraph.vertices[elementIdentifier.baseId];
 
@@ -60,6 +138,7 @@ export const traverseElementTemporal = (
         continue;
       }
       for (const [neighborVertexId, neighborVertex] of getNeighbors(
+        datastore,
         elementIdentifier,
         edgeKind,
         direction,
@@ -80,19 +159,20 @@ export const traverseElementTemporal = (
         }
 
         if (newIntersection) {
-          traverseElementTemporal(
+          traverseElementTemporal({
             traversalSubgraph,
-            neighborVertex,
-            neighborVertexId,
-            newIntersection,
-            {
+            datastore,
+            element: neighborVertex,
+            elementIdentifier: neighborVertexId,
+            interval: newIntersection,
+            currentTraversalDepths: {
               ...currentTraversalDepths,
               [edgeKind]: {
                 ...currentTraversalDepths[edgeKind],
                 [direction]: depth - 1,
               },
             },
-          );
+          });
         }
       }
     }
@@ -364,18 +444,21 @@ export const traverseElementTemporal = (
 /** @todo - Update this to handle ontology edges */
 /** @todo - Update this to use temporal versioning information */
 export const traverseElement = <TemporalSupport extends boolean>(
-  traversalSubgraph: Subgraph<TemporalSupport>,
+  traversalSubgraph: TraversalSubgraph<TemporalSupport>,
   element: Vertex<TemporalSupport>,
   elementIdentifier: GraphElementVertexId,
   datastore: Subgraph<true>,
   currentTraversalDepths: GraphResolveDepths,
+  interval: TemporalSupport extends true ? NonNullTimeInterval : undefined,
 ) => {
   if (traversalSubgraph.temporalAxes !== undefined) {
-    return traverseElementTemporal(
-      traversalSubgraph as Subgraph<true>,
-      elementIdentifier,
+    return traverseElementTemporal({
+      traversalSubgraph: traversalSubgraph as TraversalSubgraph<true>,
       datastore,
+      element: element as Vertex<true>,
+      elementIdentifier,
+      interval: interval as NonNullTimeInterval,
       currentTraversalDepths,
-    );
+    });
   }
 };

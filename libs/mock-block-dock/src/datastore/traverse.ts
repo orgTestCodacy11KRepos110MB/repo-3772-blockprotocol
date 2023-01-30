@@ -1,14 +1,25 @@
 import {
-  EntityIdAndTimestamp,
+  Edges,
+  EntityId,
+  EntityValidInterval,
   GraphElementForIdentifier,
   GraphElementVertexId,
   GraphResolveDepths,
+  HasLeftEntityEdge,
+  HasRightEntityEdge,
+  IncomingLinkEdge,
   isEntityVertex,
+  KnowledgeGraphOutwardEdge,
   NonNullTimeInterval,
+  OntologyRootedEdges,
+  OutgoingLinkEdge,
   OutwardEdge,
   Subgraph,
   Vertex,
 } from "@blockprotocol/graph";
+import { mustBeDefined } from "@blockprotocol/graph/dist/stdlib/must-be-defined";
+import { mapElementsIntoRevisions } from "@blockprotocol/graph/dist/stdlib/subgraph/element/map-revisions";
+import { addKnowledgeGraphEdgeToSubgraphByMutation } from "@blockprotocol/graph/internal";
 import { intervalIntersectionWithInterval } from "@blockprotocol/graph/src/stdlib/interval";
 import {
   getIncomingLinksForEntity,
@@ -19,14 +30,16 @@ import {
 
 import { typedEntries } from "../util";
 
+const TIMESTAMP_PLACEHOLDER = `TIMESTAMP_PLACEHOLDER` as const;
+
 /**
- * Advanced type to recursively search a type for `EntityIdAndTimestamp` and patch those occurrences by removing the
- * definition of the "timestamp" property.
+ * Advanced type to recursively search a type for `EntityValidInterval` and patch those occurrences by removing the
+ * definition of the "validInterval" property.
  */
-type PatchEntityEdges<ToPatch extends unknown> = ToPatch extends object
-  ? ToPatch extends EntityIdAndTimestamp
-    ? Omit<EntityIdAndTimestamp, "timestamp">
-    : { [key in keyof ToPatch]: PatchEntityEdges<ToPatch[key]> }
+type PatchEntityOutwardEdges<ToPatch extends unknown> = ToPatch extends object
+  ? ToPatch extends EntityValidInterval
+    ? Omit<ToPatch, "validInterval">
+    : { [key in keyof ToPatch]: PatchEntityOutwardEdges<ToPatch[key]> }
   : ToPatch;
 
 /**
@@ -34,21 +47,73 @@ type PatchEntityEdges<ToPatch extends unknown> = ToPatch extends object
  * to avoid many intermediary rewrites, the timestamps of the edges are filled in as a post-processing step and are left
  * unspecified until then.
  */
-export type TraversalSubgraph<TemporalSupport extends boolean> =
-  PatchEntityEdges<Subgraph<TemporalSupport>>;
+export type TraversalSubgraph<TemporalSupport extends boolean> = Omit<
+  Subgraph<TemporalSupport>,
+  "edges"
+> & {
+  edges: OntologyRootedEdges & {
+    [entityId: EntityId]: Record<
+      typeof TIMESTAMP_PLACEHOLDER,
+      PatchEntityOutwardEdges<KnowledgeGraphOutwardEdge[]>
+    >;
+  };
+};
+
+type PatchedOutgoingLinkEdge = PatchEntityOutwardEdges<OutgoingLinkEdge>;
+type PatchedIncomingLinkEdge = PatchEntityOutwardEdges<IncomingLinkEdge>;
+type PatchedHasLeftEntityEdge = PatchEntityOutwardEdges<HasLeftEntityEdge>;
+type PatchedHasRightEntityEdge = PatchEntityOutwardEdges<HasRightEntityEdge>;
+
+/**
+ * @todo - doc
+ * @param traversalSubgraph
+ * @param sourceEntityId
+ * @param outwardEdge
+ */
+const patchedAddKnowledgeGraphEdge = <TemporalSupport extends boolean>(
+  traversalSubgraph: TraversalSubgraph<TemporalSupport>,
+  sourceEntityId: EntityId,
+  outwardEdge: PatchEntityOutwardEdges<KnowledgeGraphOutwardEdge>,
+) =>
+  addKnowledgeGraphEdgeToSubgraphByMutation(
+    // intermediary `as unknown` cast is needed because otherwise tsc gets confused and complains about type
+    // instantiation being excessively deep and possibly infinite
+    traversalSubgraph as unknown as Subgraph<TemporalSupport>,
+    sourceEntityId,
+    TIMESTAMP_PLACEHOLDER,
+    outwardEdge as KnowledgeGraphOutwardEdge,
+  );
+
+/**
+ * @todo - doc
+ */
+type NestedExtract<T, U> = Extract<
+  T,
+  T extends { [key in keyof U]: unknown }
+    ? {
+        [sharedKey in keyof U]: NestedExtract<T[sharedKey], U[sharedKey]>;
+      }
+    : T extends U
+    ? T
+    : never
+>;
 
 type GetNeighborsReturn<
-  EdgeKind extends keyof GraphResolveDepths,
+  EdgeKind extends OutwardEdge["kind"],
   Reversed extends boolean,
 > = GraphElementForIdentifier<
   true,
-  Extract<OutwardEdge, { kind: EdgeKind; reversed: Reversed }>["rightEndpoint"]
+  NestedExtract<
+    OutwardEdge,
+    { kind: EdgeKind; reversed: Reversed }
+  >["rightEndpoint"]
 >[];
 
 export const getNeighbors = <
-  EdgeKind extends keyof GraphResolveDepths,
+  EdgeKind extends OutwardEdge["kind"],
   Reversed extends boolean,
 >(
+  traversalSubgraph: TraversalSubgraph<true>,
   datastore: Subgraph<true>,
   source: Vertex<true>,
   edgeKind: EdgeKind,
@@ -56,58 +121,160 @@ export const getNeighbors = <
   interval: NonNullTimeInterval,
 ): GetNeighborsReturn<EdgeKind, Reversed> => {
   switch (edgeKind) {
-    case "hasLeftEntity": {
+    case "HAS_LEFT_ENTITY": {
       if (!isEntityVertex(source)) {
         return [];
       }
 
       const { inner: sourceEntity } = source;
 
-      const entityId = sourceEntity.metadata.recordId.entityId;
+      const sourceEntityId = sourceEntity.metadata.recordId.entityId;
 
       if (reversed) {
         // get outgoing links for entity
-        return getOutgoingLinksForEntity(datastore, entityId, interval);
+        const outgoingLinks = getOutgoingLinksForEntity(
+          datastore,
+          sourceEntityId,
+          interval,
+        );
+        const mappedRevisions = mapElementsIntoRevisions(outgoingLinks);
+
+        for (const outgoingLinkEntityId of Object.keys(mappedRevisions)) {
+          const outgoingLinkEdge: PatchedOutgoingLinkEdge = {
+            kind: "HAS_LEFT_ENTITY",
+            reversed: true,
+            rightEndpoint: {
+              entityId: outgoingLinkEntityId,
+            },
+          };
+
+          patchedAddKnowledgeGraphEdge(
+            traversalSubgraph,
+            sourceEntityId,
+            outgoingLinkEdge,
+          );
+        }
+
+        return Object.values(mappedRevisions) as GetNeighborsReturn<
+          "HAS_LEFT_ENTITY",
+          true
+        > as GetNeighborsReturn<EdgeKind, Reversed>;
       } else if (
         sourceEntity.linkData?.leftEntityId !== undefined &&
         sourceEntity.linkData?.rightEntityId !== undefined
       ) {
         // get left entity for link entity
-        return getLeftEntityForLinkEntity(datastore, entityId, interval);
+        const leftEntityRevisions = getLeftEntityForLinkEntity(
+          datastore,
+          sourceEntityId,
+          interval,
+        );
+        const hasLeftEntityEdge: PatchedHasLeftEntityEdge = {
+          kind: "HAS_LEFT_ENTITY",
+          reversed: false,
+          rightEndpoint: {
+            /**
+             * @todo - This assumes that once a link entity's endpoints cannot change. This is based on the assumption
+             *   that once entity is a link, it's always a link, however we don't enforce this currently.
+             */
+            entityId: mustBeDefined(leftEntityRevisions[0]).metadata.recordId
+              .entityId,
+          },
+        };
+
+        patchedAddKnowledgeGraphEdge(
+          traversalSubgraph,
+          sourceEntityId,
+          hasLeftEntityEdge,
+        );
+
+        return [leftEntityRevisions] as GetNeighborsReturn<
+          "HAS_LEFT_ENTITY",
+          false
+        > as GetNeighborsReturn<EdgeKind, Reversed>;
       }
 
       return [];
     }
-    case "hasRightEntity": {
+    case "HAS_RIGHT_ENTITY": {
       if (!isEntityVertex(source)) {
         return [];
       }
 
       const { inner: sourceEntity } = source;
 
-      const entityId = sourceEntity.metadata.recordId.entityId;
+      const sourceEntityId = sourceEntity.metadata.recordId.entityId;
 
       if (reversed) {
         // get incoming links for entity
-        return getIncomingLinksForEntity(datastore, entityId, interval);
+        const incomingLinks = getIncomingLinksForEntity(
+          datastore,
+          sourceEntityId,
+          interval,
+        );
+        const mappedRevisions = mapElementsIntoRevisions(incomingLinks);
+
+        for (const incomingLinkEntityId of Object.keys(mappedRevisions)) {
+          const incomingLinkEdge: PatchedIncomingLinkEdge = {
+            kind: "HAS_RIGHT_ENTITY",
+            reversed: true,
+            rightEndpoint: {
+              entityId: incomingLinkEntityId,
+            },
+          };
+
+          patchedAddKnowledgeGraphEdge(
+            traversalSubgraph,
+            sourceEntityId,
+            incomingLinkEdge,
+          );
+        }
+
+        return Object.values(mappedRevisions) as GetNeighborsReturn<
+          "HAS_RIGHT_ENTITY",
+          true
+        > as GetNeighborsReturn<EdgeKind, Reversed>;
       } else if (
         sourceEntity.linkData?.leftEntityId !== undefined &&
         sourceEntity.linkData?.rightEntityId !== undefined
       ) {
         // get right entity for link entity
-        return getRightEntityForLinkEntity(datastore, entityId, interval);
+        const rightEntityRevisions = getRightEntityForLinkEntity(
+          datastore,
+          sourceEntityId,
+          interval,
+        );
+        const hasRightEntityEdge: PatchedHasRightEntityEdge = {
+          kind: "HAS_RIGHT_ENTITY",
+          reversed: false,
+          rightEndpoint: {
+            /**
+             * @todo - This assumes that once a link entity's endpoints cannot change. This is based on the assumption
+             *   that once entity is a link, it's always a link, however we don't enforce this currently.
+             */
+            entityId: mustBeDefined(rightEntityRevisions[0]).metadata.recordId
+              .entityId,
+          },
+        };
+
+        patchedAddKnowledgeGraphEdge(
+          traversalSubgraph,
+          sourceEntityId,
+          hasRightEntityEdge,
+        );
+
+        return [rightEntityRevisions] as GetNeighborsReturn<
+          "HAS_RIGHT_ENTITY",
+          false
+        > as GetNeighborsReturn<EdgeKind, Reversed>;
       }
 
       return [];
     }
+    default: {
+      throw new Error(`Currently unsupported traversal edge kind: ${edgeKind}`);
+    }
   }
-
-  /**
-   * @todo - Unsure why this error is required, avoiding it would be good as TS would force us to be exhaustive in the
-   *   case statements, making sure we update this if we support more edge kinds. However, removing it complains about
-   *   lacking ending return statement otherwise
-   */
-  throw new Error(`Unknown edge kind: ${edgeKind}`);
 };
 
 export const traverseElementTemporal = ({
@@ -186,266 +353,6 @@ export const traverseElementTemporal = ({
     }
   }
 };
-
-// export const traverseElementTemporal2 = (
-//   traversalSubgraph: Subgraph<true>,
-//   elementIdentifier: GraphElementVertexId,
-//   datastore: Subgraph<true>,
-//   traversalContext: TraversalContext,
-//   currentTraversalDepths: PartialDepths,
-// ) => {
-//   const unresolvedDepths = traversalContext.insert(
-//     elementIdentifier,
-//     currentTraversalDepths,
-//   );
-//
-//   if (Object.keys(unresolvedDepths).length === 0) {
-//     return;
-//   }
-//
-//   const element =
-//     datastore.vertices[elementIdentifier.baseId]?.[
-//       elementIdentifier.revisionId
-//     ];
-//
-//   if (!element) {
-//     throw new Error(
-//       `Couldn't find element in graph associated with identifier: ${JSON.stringify(
-//         elementIdentifier,
-//       )}`,
-//     );
-//   }
-//
-//   const revisionsInTraversalSubgraph =
-//     traversalSubgraph.vertices[elementIdentifier.baseId];
-//
-//   // `any` casts here are because TypeScript wants us to narrow the Identifier type before trusting us
-//   if (revisionsInTraversalSubgraph) {
-//     (revisionsInTraversalSubgraph as any)[elementIdentifier.revisionId] =
-//       element;
-//   } else {
-//     // eslint-disable-next-line no-param-reassign -- The point of this function is to mutate the subgraph
-//     (traversalSubgraph as any).vertices[elementIdentifier.baseId] = {
-//       [elementIdentifier.revisionId]: element,
-//     };
-//   }
-//
-//   const toResolve: ResolveMap = new ResolveMap({});
-//
-//   for (const [edgeKind, depths] of typedEntries(unresolvedDepths)) {
-//     // Little hack for typescript, this is wrapped in a function with a return value to get type safety to ensure the
-//     // switch statement is exhaustive. Try removing a case to see.
-//     ((): boolean => {
-//       switch (edgeKind) {
-//         case "hasLeftEntity": {
-//           const entityId = elementIdentifier.baseId as EntityId;
-//
-//           if (depths.incoming) {
-//             // get outgoing links for entity and insert edges
-//             for (const outgoingLinkEntity of getOutgoingLinksForEntity(
-//               datastore,
-//               entityId,
-//             )) {
-//               const {
-//                 metadata: {
-//                   recordId: {
-//                     entityId: outgoingLinkEntityId,
-//                     editionId: edgeTimestamp,
-//                   },
-//                 },
-//               } = outgoingLinkEntity;
-//
-//               const outgoingLinkEdge: OutgoingLinkEdge = {
-//                 kind: "HAS_LEFT_ENTITY",
-//                 reversed: true,
-//                 rightEndpoint: {
-//                   baseId: outgoingLinkEntityId,
-//                   timestamp: edgeTimestamp,
-//                 },
-//               };
-//
-//               addKnowledgeGraphEdgeToSubgraphByMutation(
-//                 traversalSubgraph,
-//                 entityId,
-//                 edgeTimestamp,
-//                 outgoingLinkEdge,
-//               );
-//
-//               /** @todo - This is temporary, and wrong */
-//               toResolve.insert(
-//                 {
-//                   baseId: outgoingLinkEntity.metadata.recordId.entityId,
-//                   revisionId: outgoingLinkEntity.metadata.recordId.editionId,
-//                 },
-//                 {
-//                   [edgeKind]: { incoming: depths.incoming - 1 },
-//                 },
-//               );
-//             }
-//           }
-//           if (depths.outgoing) {
-//             if (
-//               "linkData" in element.inner &&
-//               element.inner.linkData?.leftEntityId !== undefined &&
-//               element.inner.linkData?.rightEntityId !== undefined
-//             ) {
-//               // get left entity for link entity and insert edges
-//               const leftEntity = getLeftEntityForLinkEntity(
-//                 datastore,
-//                 entityId,
-//               );
-//               const {
-//                 metadata: {
-//                   recordId: {
-//                     entityId: leftEntityId,
-//                     editionId: edgeTimestamp,
-//                   },
-//                 },
-//               } = leftEntity;
-//
-//               const hasLeftEntityEdge: HasLeftEntityEdge = {
-//                 kind: "HAS_LEFT_ENTITY",
-//                 reversed: false,
-//                 rightEndpoint: {
-//                   baseId: leftEntityId,
-//                   timestamp: edgeTimestamp,
-//                 },
-//               };
-//
-//               addKnowledgeGraphEdgeToSubgraphByMutation(
-//                 traversalSubgraph,
-//                 entityId,
-//                 edgeTimestamp,
-//                 hasLeftEntityEdge,
-//               );
-//
-//               /** @todo - This is temporary, and wrong */
-//               toResolve.insert(
-//                 {
-//                   baseId: leftEntity.metadata.recordId.entityId,
-//                   revisionId: leftEntity.metadata.recordId.editionId,
-//                 },
-//                 {
-//                   [edgeKind]: { outgoing: depths.outgoing - 1 },
-//                 },
-//               );
-//             }
-//           }
-//
-//           return true;
-//         }
-//         case "hasRightEntity": {
-//           const entityId = elementIdentifier.baseId as EntityId;
-//
-//           if (depths.incoming) {
-//             // get incoming links for entity and insert edges
-//             for (const incomingLinkEntity of getIncomingLinksForEntity(
-//               datastore,
-//               entityId,
-//             )) {
-//               const {
-//                 metadata: {
-//                   recordId: {
-//                     entityId: incomingLinkEntityId,
-//                     editionId: edgeTimestamp,
-//                   },
-//                 },
-//               } = incomingLinkEntity;
-//
-//               const incomingLinkEdge: IncomingLinkEdge = {
-//                 kind: "HAS_RIGHT_ENTITY",
-//                 reversed: true,
-//                 rightEndpoint: {
-//                   baseId: incomingLinkEntityId,
-//                   timestamp: edgeTimestamp,
-//                 },
-//               };
-//
-//               addKnowledgeGraphEdgeToSubgraphByMutation(
-//                 traversalSubgraph,
-//                 entityId,
-//                 edgeTimestamp,
-//                 incomingLinkEdge,
-//               );
-//
-//               /** @todo - This is temporary, and wrong */
-//               toResolve.insert(
-//                 {
-//                   baseId: incomingLinkEntity.metadata.recordId.entityId,
-//                   revisionId: incomingLinkEntity.metadata.recordId.editionId,
-//                 },
-//                 {
-//                   [edgeKind]: { incoming: depths.incoming - 1 },
-//                 },
-//               );
-//             }
-//           }
-//           if (depths.outgoing) {
-//             if (
-//               "linkData" in element.inner &&
-//               element.inner.linkData?.leftEntityId !== undefined &&
-//               element.inner.linkData?.rightEntityId !== undefined
-//             ) {
-//               // get right entity for link entity and insert edges
-//               const rightEntity = getRightEntityForLinkEntity(
-//                 datastore,
-//                 entityId,
-//               );
-//               const {
-//                 metadata: {
-//                   recordId: {
-//                     entityId: rightEntityId,
-//                     editionId: edgeTimestamp,
-//                   },
-//                 },
-//               } = rightEntity;
-//
-//               const hasLeftEntityEdge: HasRightEntityEdge = {
-//                 kind: "HAS_RIGHT_ENTITY",
-//                 reversed: false,
-//                 rightEndpoint: {
-//                   baseId: rightEntityId,
-//                   timestamp: edgeTimestamp,
-//                 },
-//               };
-//
-//               addKnowledgeGraphEdgeToSubgraphByMutation(
-//                 traversalSubgraph,
-//                 entityId,
-//                 edgeTimestamp,
-//                 hasLeftEntityEdge,
-//               );
-//
-//               /** @todo - This is temporary, and wrong */
-//               toResolve.insert(
-//                 {
-//                   baseId: rightEntity.metadata.recordId.entityId,
-//                   revisionId: rightEntity.metadata.recordId.editionId,
-//                 },
-//                 {
-//                   [edgeKind]: { outgoing: depths.outgoing - 1 },
-//                 },
-//               );
-//             }
-//           }
-//           return true;
-//         }
-//       }
-//     })();
-//   }
-//
-//   for (const [siblingElementIdentifierString, depths] of typedEntries(
-//     toResolve.map,
-//   )) {
-//     traverseElement(
-//       traversalSubgraph,
-//       JSON.parse(siblingElementIdentifierString) as GraphElementVertexId,
-//       datastore,
-//       traversalContext,
-//       depths.inner,
-//     );
-//   }
-// };
 
 /** @todo - doc */
 /** @todo - Update this to take an interval instead of always being "latest" */

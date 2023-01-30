@@ -1,4 +1,8 @@
-import { Entity, EntityRecordId } from "@blockprotocol/graph";
+import {
+  Entity,
+  EntityRecordId,
+  ResolvedQueryTemporalAxes,
+} from "@blockprotocol/graph";
 import { Dispatch, SetStateAction, useMemo } from "react";
 
 import { mockData as initialMockData } from "./data";
@@ -11,7 +15,8 @@ import { useDefaultState } from "./use-default-state";
 
 export type MockBlockHookArgs = {
   blockEntityRecordId?: EntityRecordId;
-  initialEntities?: Entity[];
+  initialTemporalAxes?: ResolvedQueryTemporalAxes;
+  initialEntities?: Entity<true>[];
   // initialLinkedAggregations?: LinkedAggregationDefinition[];
   readonly: boolean;
 };
@@ -34,6 +39,7 @@ export type MockBlockHookResult = {
  */
 export const useMockBlockProps = ({
   blockEntityRecordId: externalBlockEntityRecordId,
+  initialTemporalAxes,
   initialEntities,
   // initialLinkedAggregations,
   readonly: externalReadonly,
@@ -52,6 +58,7 @@ export const useMockBlockProps = ({
     mockData: MockData;
   } => {
     const nextMockData: MockData = {
+      temporalAxes: initialTemporalAxes ?? initialMockData.temporalAxes,
       entities: [...(initialEntities ?? initialMockData.entities)],
       // linkedAggregationDefinitions:
       //   initialLinkedAggregations ??
@@ -89,6 +96,7 @@ export const useMockBlockProps = ({
     return { mockData: nextMockData };
   }, [
     externalBlockEntityRecordId,
+    initialTemporalAxes,
     initialEntities,
     setEntityRecordIdOfEntityForBlock,
     // initialLinkedAggregations,

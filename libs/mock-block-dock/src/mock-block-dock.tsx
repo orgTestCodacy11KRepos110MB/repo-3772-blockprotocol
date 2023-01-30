@@ -20,6 +20,7 @@ import {
 import { v4 as uuid } from "uuid";
 
 import { BlockRenderer } from "./block-renderer";
+import { getDefaultTemporalAxes } from "./datastore/get-default-temporal-axes";
 import { getEntity } from "./datastore/hook-implementations/entity/get-entity";
 import { HookPortals } from "./hook-portals";
 import { MockBlockDockProvider } from "./mock-block-dock-context";
@@ -48,7 +49,7 @@ type MockBlockDockProps = {
   blockEntityRecordId?: EntityRecordId;
   debug?: boolean;
   hideDebugToggle?: boolean;
-  initialEntities?: Entity[];
+  initialEntities?: Entity<true>[];
   // initialLinkedAggregations?: LinkedAggregationDefinition[];
   readonly?: boolean;
   blockInfo?: {
@@ -114,6 +115,7 @@ export const MockBlockDock: FunctionComponent<MockBlockDockProps> = ({
         hasLeftEntity: { incoming: 2, outgoing: 2 },
         hasRightEntity: { incoming: 2, outgoing: 2 },
       },
+      temporalAxes: getDefaultTemporalAxes(),
     },
     mockDatastore.graph,
   );
@@ -131,7 +133,7 @@ export const MockBlockDock: FunctionComponent<MockBlockDockProps> = ({
       ? "html"
       : undefined;
 
-  const propsToInject: BlockGraphProperties = {
+  const propsToInject: BlockGraphProperties<true> = {
     graph: {
       blockEntitySubgraph,
       readonly,

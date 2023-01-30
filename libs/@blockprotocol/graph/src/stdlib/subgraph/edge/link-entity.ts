@@ -1,4 +1,3 @@
-import { typedEntries } from "../../../codegen/shared.js";
 import {
   Entity,
   EntityId,
@@ -12,6 +11,7 @@ import {
   Subgraph,
   Timestamp,
 } from "../../../index.js";
+import { typedEntries } from "../../../shared.js";
 import { compareBounds } from "../../bound.js";
 import {
   getLatestInstantIntervalForSubgraph,

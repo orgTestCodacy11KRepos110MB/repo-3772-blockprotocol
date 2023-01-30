@@ -9,12 +9,12 @@ import {
   OutwardEdge,
   Subgraph,
 } from "@blockprotocol/graph";
-import { intervalOverlapsInterval } from "@blockprotocol/graph/dist/stdlib/interval";
 import {
   getEntities,
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
   getPropertyTypesByBaseUri,
+  intervalOverlapsInterval,
 } from "@blockprotocol/graph/stdlib-temporal";
 import { Box } from "@mui/material";
 import { GraphChart, GraphSeriesOption } from "echarts/charts";

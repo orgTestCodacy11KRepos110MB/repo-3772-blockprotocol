@@ -1,7 +1,7 @@
 /**
  * The base standard library of functions for interacting with a `Subgraph`.
  */
-import { mustBeDefined } from "./stdlib/must-be-defined";
+import { mustBeDefined } from "./stdlib/must-be-defined.js";
 import { buildSubgraph as buildSubgraphGeneral } from "./stdlib/subgraph/builder.js";
 import {
   getIncomingLinksForEntity as getIncomingLinksForEntityTemporal,

@@ -16,18 +16,17 @@ import {
   SubgraphRootType,
   Vertex,
 } from "@blockprotocol/graph";
-import { mustBeDefined } from "@blockprotocol/graph/dist/stdlib/must-be-defined";
-import { mapElementsIntoRevisions } from "@blockprotocol/graph/dist/stdlib/subgraph/element/map-revisions";
 import { addKnowledgeGraphEdgeToSubgraphByMutation } from "@blockprotocol/graph/internal";
-import { intervalIntersectionWithInterval } from "@blockprotocol/graph/src/stdlib/interval";
 import {
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
   getOutgoingLinksForEntity,
   getRightEntityForLinkEntity,
+  intervalIntersectionWithInterval,
+  mapElementsIntoRevisions,
 } from "@blockprotocol/graph/stdlib-temporal";
 
-import { get, typedEntries } from "../util";
+import { get, mustBeDefined, typedEntries } from "../util";
 
 const TIMESTAMP_PLACEHOLDER = `TIMESTAMP_PLACEHOLDER` as const;
 

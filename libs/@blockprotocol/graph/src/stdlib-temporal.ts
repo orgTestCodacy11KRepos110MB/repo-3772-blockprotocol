@@ -8,6 +8,17 @@ import { GraphResolveDepths } from "./types/subgraph/graph-resolve-depths.js";
 import { ResolvedQueryTemporalAxes } from "./types/subgraph/temporal-axes.js";
 
 export {
+  getLatestInstantIntervalForSubgraph,
+  intervalContainsInterval,
+  intervalContainsTimestamp,
+  intervalIntersectionWithInterval,
+  intervalIsAdjacentToInterval,
+  intervalMergeWithInterval,
+  intervalOverlapsInterval,
+  intervalUnionWithInterval,
+  unionOfIntervals,
+} from "./stdlib/interval.js";
+export {
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
   getOutgoingLinkAndTargetEntities,
@@ -28,6 +39,7 @@ export {
   getEntityTypes,
   getEntityTypesByBaseUri,
 } from "./stdlib/subgraph/element/entity-type.js";
+export { mapElementsIntoRevisions } from "./stdlib/subgraph/element/map-revisions.js";
 export {
   getPropertyTypeById,
   getPropertyTypes,

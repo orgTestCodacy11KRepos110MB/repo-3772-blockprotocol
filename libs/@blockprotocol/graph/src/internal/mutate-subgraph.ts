@@ -9,7 +9,7 @@ import {
   Subgraph,
   Timestamp,
 } from "../index.js";
-import { unionOfIntervals } from "../stdlib/interval";
+import { unionOfIntervals } from "../stdlib/interval.js";
 import { isEqual } from "./mutate-subgraph/is-equal.js";
 
 /**

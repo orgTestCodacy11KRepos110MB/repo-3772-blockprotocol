@@ -12,7 +12,7 @@ import {
   intervalContainsInterval,
   intervalContainsTimestamp,
 } from "../../interval.js";
-import { mustBeDefined } from "../../must-be-defined";
+import { mustBeDefined } from "../../must-be-defined.js";
 
 /**
  * Returns all `Entity`s within the vertices of the subgraph, optionally filtering to only get their latest revisions.

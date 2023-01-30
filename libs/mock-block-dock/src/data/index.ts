@@ -1,7 +1,13 @@
 import { MockData } from "../datastore/use-mock-datastore";
-import { entities } from "./entities";
+import { createEntities } from "./entities";
+import { mockDataTemporalAxes } from "./temporal-axes";
 
-export const mockData: MockData = {
-  entities,
-  // linkedAggregationDefinitions,
-};
+export const mockData: MockData = (() => {
+  const temporalAxes = mockDataTemporalAxes();
+
+  return {
+    temporalAxes,
+    entities: createEntities(temporalAxes),
+    // linkedAggregationDefinitions,
+  };
+})();

@@ -1,4 +1,8 @@
-import { Entity, EntityTemporalVersioningMetadata } from "@blockprotocol/graph";
+import {
+  Entity,
+  EntityTemporalVersioningMetadata,
+  ResolvedQueryTemporalAxes,
+} from "@blockprotocol/graph";
 import { extractBaseUri } from "@blockprotocol/type-system/slim";
 
 import { entityTypes } from "./entity-types";
@@ -95,21 +99,27 @@ const createFounderOfLink = (
   };
 };
 
-const createEntities = (): Entity<true>[] => {
+const createEntities = (
+  temporalAxes: ResolvedQueryTemporalAxes,
+): Entity<true>[] => {
   // First create people and companies in separate lists
   const people = [];
   const companies = [];
 
-  // Create them all with the same temporal versioning ranges, where both axes are the interval [UTC epoch, now)
   const interval = {
     start: {
       kind: "inclusive",
-      limit: new Date(0).toISOString(),
+      limit:
+        temporalAxes.variable.interval.start.kind === "unbounded"
+          ? new Date(0).toISOString()
+          : temporalAxes.variable.interval.start.limit,
     },
     end: {
-      kind: "unbounded",
+      kind: "exclusive",
+      limit: temporalAxes.variable.interval.end.limit,
     },
   } as const;
+
   const temporalVersioningMetadata: EntityTemporalVersioningMetadata = {
     transactionTime: interval,
     decisionTime: interval,
@@ -154,6 +164,4 @@ const createEntities = (): Entity<true>[] => {
   return [...entities, ...people, ...companies];
 };
 
-const entities = createEntities();
-
-export { entities };
+export { createEntities };

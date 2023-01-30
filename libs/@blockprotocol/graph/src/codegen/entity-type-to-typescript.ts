@@ -17,8 +17,7 @@ import {
 import { hardcodedBpTypes } from "./hardcoded-bp-types.js";
 import { fetchTypeAsJson, typedEntries } from "./shared.js";
 
-const bannerComment = (uri: string, depth: number) => `/* eslint-disable */
-/**
+const bannerComment = (uri: string, depth: number) => `/**
  * This file was automatically generated – do not edit it.
  * @see ${uri} for the root JSON Schema these types were generated from
  * Types for link entities and their destination were generated to a depth of ${depth} from the root
@@ -70,7 +69,15 @@ const generateTypeNameFromSchema = (
   schema: EntityType,
   existingTypes: UriToType,
 ): string => {
-  const proposedName = schema.title?.replace(/ /g, "");
+  if (!schema.title) {
+    throw new Error("Schema must have a 'title'");
+  }
+
+  const nameToCase = schema.title.replace(/ /g, "");
+
+  const proposedName = `${nameToCase[0]!.toUpperCase()}${nameToCase.substring(
+    1,
+  )}`;
 
   let typeWithProposedName = typedEntries(existingTypes).find(
     ([_entityTypeId, { typeName }]) => typeName === proposedName,
@@ -172,6 +179,12 @@ const _jsonSchemaToTypeScript = async (
     "export type Link =",
   );
 
+  // Better type for the opaque JSON object type
+  compiledSchema = compiledSchema.replaceAll(
+    "export interface Object {}",
+    "export type Object = JsonObject;",
+  );
+
   const compiledType = { typeName, typeScriptString: compiledSchema };
 
   // add the compiled type to our map of already-resolved types in case it's encountered again when following links
@@ -218,8 +231,9 @@ const _jsonSchemaToTypeScript = async (
       generateLinkEntityAndRightEntityDefinition({
         sourceEntityTypeName: typeName,
         linkEntityTypeName: linkEntityType.typeName,
-        rightEntityTypeNames: (
-          rightEntityTypes ?? [{ typeName: "Entity" }]
+        rightEntityTypeNames: (rightEntityTypes.length > 0
+          ? rightEntityTypes
+          : [{ typeName: "Entity" }]
         ).map((type) => type.typeName),
       });
 

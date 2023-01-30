@@ -56,7 +56,7 @@ export const buildSubgraph = <TemporalSupport extends boolean>(
       ),
   );
 
-  if (missingRoots) {
+  if (missingRoots.length > 0) {
     throw new Error(
       `Root(s) not present in data: ${missingRoots
         .map(

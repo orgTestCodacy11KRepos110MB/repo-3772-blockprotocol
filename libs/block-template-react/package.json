@@ -19,13 +19,13 @@
   },
   "scripts": {
     "build": "block-scripts build",
-    "codegen": "block-scripts codegen",
     "dev": "block-scripts dev",
     "fix:eslint": "eslint --fix .",
     "format": "prettier --write --ignore-unknown .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "prepublishOnly": "PACKAGE_DIR=$(pwd) yarn workspace @local/package-chores exe scripts/cleanup-before-publishing.ts",
+    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "prettier": {
@@ -40,7 +40,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@types/react-dom": "^18.0.9",
     "block-scripts": "0.0.19",
-    "eslint": "8.31.0",
+    "eslint": "8.33.0",
     "mock-block-dock": "0.0.39",
     "prettier": "2.8.2",
     "react": "^18.2.0",

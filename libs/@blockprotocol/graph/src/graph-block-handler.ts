@@ -19,6 +19,7 @@ import {
   CreateResourceError,
   DeleteEntityData,
   Entity,
+  EntityPropertiesObject,
   EntityRootedSubgraph,
   EntityTypeRootedSubgraph,
   GetEntityData,
@@ -99,7 +100,9 @@ export class GraphBlockHandler<TemporalSupport extends boolean>
 
   // @todo automate creation of these methods from graph-service.json and types.ts
 
-  createEntity({ data }: { data?: CreateEntityData }) {
+  createEntity<
+    ValidProperties extends EntityPropertiesObject = EntityPropertiesObject,
+  >({ data }: { data?: CreateEntityData & { properties: ValidProperties } }) {
     return this.sendMessage<Entity<TemporalSupport>, CreateResourceError>({
       message: {
         messageName: "createEntity",
@@ -109,7 +112,9 @@ export class GraphBlockHandler<TemporalSupport extends boolean>
     });
   }
 
-  updateEntity({ data }: { data?: UpdateEntityData }) {
+  updateEntity<
+    ValidProperties extends EntityPropertiesObject = EntityPropertiesObject,
+  >({ data }: { data?: UpdateEntityData & { properties: ValidProperties } }) {
     return this.sendMessage<Entity<TemporalSupport>, ReadOrModifyResourceError>(
       {
         message: {

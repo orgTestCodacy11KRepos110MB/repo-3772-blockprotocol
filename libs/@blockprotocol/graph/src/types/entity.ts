@@ -1,4 +1,7 @@
-import { JsonValue } from "@blockprotocol/core";
+import type {
+  JsonObject as CoreJsonObject,
+  JsonValue as CoreJsonValue,
+} from "@blockprotocol/core";
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system/slim";
 
 import {
@@ -12,6 +15,9 @@ import {
   UnresolvedQueryTemporalAxes,
 } from "../types-non-temporal.js";
 import { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
+
+export type JsonObject = CoreJsonObject;
+export type JsonValue = CoreJsonValue;
 
 /** @todo - Consider branding these */
 /** @todo - Add documentation for these if we keep them */

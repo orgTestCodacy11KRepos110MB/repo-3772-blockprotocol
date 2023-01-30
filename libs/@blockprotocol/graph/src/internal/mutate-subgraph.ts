@@ -53,6 +53,7 @@ export const addKnowledgeGraphEdgeToSubgraphByMutation = <
   /* eslint-enable no-param-reassign */
 };
 
+/** @todo - fix the docs here */
 /**
  * Looking to build a subgraph? You probably want `import { buildSubgraph } from @blockprotocol/graph/stdlib`
  *

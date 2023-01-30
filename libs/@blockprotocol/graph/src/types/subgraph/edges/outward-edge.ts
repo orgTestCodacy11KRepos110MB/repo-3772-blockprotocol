@@ -6,29 +6,13 @@ import {
   Timestamp,
   TimestampLimitedTemporalBound,
 } from "../../temporal-versioning.js";
-import { EntityVertexId, OntologyTypeVertexId } from "../vertices";
 import {
   isKnowledgeGraphEdgeKind,
   isOntologyEdgeKind,
   isSharedEdgeKind,
-  KnowledgeGraphEdgeKind,
-  OntologyEdgeKind,
-  SharedEdgeKind,
 } from "./kind.js";
-
-/**
- * A "partial" definition of an edge which is complete when joined with the missing left-endpoint (usually the source
- * of the edge)
- */
-type GenericOutwardEdge<
-  EdgeKind extends KnowledgeGraphEdgeKind | OntologyEdgeKind | SharedEdgeKind,
-  Endpoint,
-  Reversed extends boolean = boolean,
-> = {
-  kind: EdgeKind;
-  reversed: Reversed;
-  rightEndpoint: Endpoint;
-};
+import { KnowledgeGraphOutwardEdge } from "./variants/knowledge-graph";
+import { OntologyOutwardEdge } from "./variants/ontology";
 
 export type EntityIdAndTimestamp = {
   baseId: EntityId;
@@ -39,14 +23,6 @@ export type EntityValidInterval = {
   entityId: EntityId;
   validInterval: TimeInterval<TimestampLimitedTemporalBound, TemporalBound>;
 };
-
-export type OntologyOutwardEdge =
-  | GenericOutwardEdge<OntologyEdgeKind, OntologyTypeVertexId>
-  | GenericOutwardEdge<SharedEdgeKind, EntityValidInterval, true>;
-
-export type KnowledgeGraphOutwardEdge =
-  | GenericOutwardEdge<KnowledgeGraphEdgeKind, EntityValidInterval>
-  | GenericOutwardEdge<SharedEdgeKind, OntologyTypeVertexId, false>;
 
 export type OutwardEdge = OntologyOutwardEdge | KnowledgeGraphOutwardEdge;
 

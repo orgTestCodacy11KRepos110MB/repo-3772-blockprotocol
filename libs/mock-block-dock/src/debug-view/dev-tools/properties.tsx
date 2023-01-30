@@ -1,4 +1,4 @@
-import { Entity } from "@blockprotocol/graph";
+import { Entity, SubgraphRootTypes } from "@blockprotocol/graph";
 import { getEntityTypeById, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   Box,
@@ -23,7 +23,11 @@ export const PropertiesView = () => {
     useMockBlockDockContext();
 
   const blockEntity = useMemo(
-    () => getRoots(blockEntitySubgraph)[0]!,
+    /** @todo - why do we have to specify the generics here, how did `getRoots` break */
+    () =>
+      getRoots<true, SubgraphRootTypes<true>["entity"]>(
+        blockEntitySubgraph,
+      )[0]!,
     [blockEntitySubgraph],
   );
 
@@ -81,7 +85,7 @@ export const PropertiesView = () => {
                   ) {
                     return false;
                   }
-                  const entity = args.updated_src as Entity;
+                  const entity = args.updated_src as Entity<true>;
                   void updateEntity({
                     data: {
                       entityId: entity.metadata.recordId.entityId,
@@ -97,7 +101,7 @@ export const PropertiesView = () => {
                   if (!args.namespace.includes("properties")) {
                     return false;
                   }
-                  const entity = args.updated_src as Entity;
+                  const entity = args.updated_src as Entity<true>;
                   void updateEntity({
                     data: {
                       entityId: entity.metadata.recordId.entityId,
@@ -113,7 +117,7 @@ export const PropertiesView = () => {
                   if (!args.namespace.includes("properties")) {
                     return false;
                   }
-                  const entity = args.updated_src as Entity;
+                  const entity = args.updated_src as Entity<true>;
                   void updateEntity({
                     data: {
                       entityId: entity.metadata.recordId.entityId,

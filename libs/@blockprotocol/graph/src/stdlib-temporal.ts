@@ -1,11 +1,11 @@
 /**
  * The extended standard library of functions for interacting with a `Subgraph`, with support for temporal versioning.
  */
-import { buildSubgraph as buildSubgraphGeneral } from "./stdlib/subgraph/builder";
-import { Entity, EntityRecordId } from "./types/entity";
-import { EntityRootedSubgraph } from "./types/subgraph";
-import { GraphResolveDepths } from "./types/subgraph/graph-resolve-depths";
-import { ResolvedQueryTemporalAxes } from "./types/subgraph/temporal-axes";
+import { buildSubgraph as buildSubgraphGeneral } from "./stdlib/subgraph/builder.js";
+import { Entity, EntityRecordId } from "./types/entity.js";
+import { EntityRootedSubgraph } from "./types/subgraph.js";
+import { GraphResolveDepths } from "./types/subgraph/graph-resolve-depths.js";
+import { ResolvedQueryTemporalAxes } from "./types/subgraph/temporal-axes.js";
 
 export {
   getIncomingLinksForEntity,

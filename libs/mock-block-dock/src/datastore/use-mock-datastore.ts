@@ -1,10 +1,11 @@
 import {
   EmbedderGraphMessageCallbacks,
   Entity,
+  ResolvedQueryTemporalAxes,
   Subgraph,
 } from "@blockprotocol/graph";
 import { addEntitiesToSubgraphByMutation } from "@blockprotocol/graph/internal";
-import { getEntity as getEntityFromSubgraph } from "@blockprotocol/graph/stdlib";
+import { getEntityRevision as getEntityRevisionFromSubgraph } from "@blockprotocol/graph/stdlib-temporal";
 import { useCallback } from "react";
 import { v4 as uuid } from "uuid";
 
@@ -15,6 +16,7 @@ import { getEntity as getEntityImpl } from "./hook-implementations/entity/get-en
 import { useMockDataToSubgraph } from "./use-mock-data-to-subgraph";
 
 export type MockData = {
+  temporalAxes: ResolvedQueryTemporalAxes;
   entities: Entity<true>[];
   // linkedAggregationDefinitions: LinkedAggregationDefinition[];
 };
@@ -37,6 +39,19 @@ const readonlyErrorReturn: {
 
 export const useMockDatastore = (
   initialData: MockData = {
+    temporalAxes: {
+      pinned: {
+        axis: "transactionTime",
+        timestamp: new Date().toISOString(),
+      },
+      variable: {
+        axis: "decisionTime",
+        interval: {
+          start: { kind: "inclusive", limit: new Date(0).toISOString() },
+          end: { kind: "inclusive", limit: new Date().toISOString() },
+        },
+      },
+    },
     entities: [],
     // linkedAggregationDefinitions: [],
   },
@@ -172,7 +187,10 @@ export const useMockDatastore = (
               leftToRightOrder,
               rightToLeftOrder,
             } = data;
-            const currentEntity = getEntityFromSubgraph(currentGraph, entityId);
+            const currentEntity = getEntityRevisionFromSubgraph(
+              currentGraph,
+              entityId,
+            );
 
             if (currentEntity === undefined) {
               resolve({

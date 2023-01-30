@@ -3,14 +3,18 @@ import {
   AggregateEntitiesResult,
   EntityRootedSubgraph,
   Subgraph,
+  SubgraphRootTypes,
 } from "@blockprotocol/graph";
 import { getEntities } from "@blockprotocol/graph/stdlib-temporal";
 
 import { filterAndSortEntitiesOrTypes } from "../../../util";
 import { getDefaultTemporalAxes } from "../../get-default-temporal-axes";
 import { resolveTemporalAxes } from "../../resolve-temporal-axes";
-import { traverseElement } from "../../traverse";
-import { TraversalContext } from "../../traverse/traversal-context";
+import {
+  finalizeSubgraph,
+  TraversalSubgraph,
+  traverseElement,
+} from "../../traverse";
 
 const aggregateEntitiesImpl = (
   {
@@ -31,7 +35,10 @@ const aggregateEntitiesImpl = (
       temporalAxes: resolvedTemporalAxes,
     });
 
-  const subgraph = {
+  const traversalSubgraph: TraversalSubgraph<
+    true,
+    SubgraphRootTypes<true>["entity"]
+  > = {
     roots: results.map((entity) => ({
       baseId: entity.metadata.recordId.entityId,
       revisionId:
@@ -47,23 +54,25 @@ const aggregateEntitiesImpl = (
     },
   };
 
-  for (const {
-    metadata: { recordId, temporalVersioning },
-  } of results) {
-    traverseElement(
-      subgraph,
-      {
-        baseId: recordId.entityId,
-        revisionId: temporalVersioning[temporalAxes.pinned.axis].start.limit,
+  for (const entityRevision of results) {
+    traverseElement({
+      traversalSubgraph,
+      datastore: graph,
+      element: { kind: "entity", inner: entityRevision },
+      elementIdentifier: {
+        baseId: entityRevision.metadata.recordId.entityId,
+        revisionId:
+          entityRevision.metadata.temporalVersioning[
+            resolvedTemporalAxes.variable.axis
+          ].start.limit,
       },
-      graph,
-      new TraversalContext(graph),
-      graphResolveDepths,
-    );
+      currentTraversalDepths: graphResolveDepths,
+      interval: resolvedTemporalAxes.variable.interval,
+    });
   }
 
   return {
-    results: subgraph,
+    results: finalizeSubgraph(traversalSubgraph),
     operation: appliedOperation,
   };
 };

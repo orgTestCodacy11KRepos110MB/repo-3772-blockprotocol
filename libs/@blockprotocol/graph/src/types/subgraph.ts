@@ -13,8 +13,12 @@ import {
 import { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 import { SubgraphTemporalAxes } from "./subgraph/temporal-axes.js";
 import {
+  DataTypeVertex,
+  EntityTypeVertex,
+  EntityVertex,
   EntityVertexId,
   OntologyTypeVertexId,
+  PropertyTypeVertex,
   Vertices,
 } from "./subgraph/vertices.js";
 
@@ -76,47 +80,87 @@ export type EntityTypeRootedSubgraph<TemporalSupport extends boolean> =
  *
  * Helpful when creating generic functions that operate over a {@link Subgraph}
  */
-export type GraphElementIdentifiers<TemporalSupport extends boolean> = [
-  {
-    identifier: VersionedUri | OntologyTypeVertexId | OntologyTypeRecordId;
-    element:
-      | DataTypeWithMetadata
-      | PropertyTypeWithMetadata
-      | EntityTypeWithMetadata;
-  },
-  {
-    identifier: BaseUri;
-    element:
-      | DataTypeWithMetadata[]
-      | PropertyTypeWithMetadata[]
-      | EntityTypeWithMetadata[];
-  },
-  {
-    identifier: EntityIdAndTimestamp | EntityVertexId | EntityRecordId;
-    element: Entity<TemporalSupport>;
-  },
-  {
-    identifier: EntityId | EntityValidInterval;
-    element: Entity<TemporalSupport>[];
-  },
-];
+export type GraphElementIdentifiers<TemporalSupport extends boolean> =
+  | {
+      identifier: VersionedUri | OntologyTypeVertexId | OntologyTypeRecordId;
+      element:
+        | DataTypeWithMetadata
+        | PropertyTypeWithMetadata
+        | EntityTypeWithMetadata;
+      vertex: DataTypeVertex | PropertyTypeVertex | EntityTypeVertex;
+    }
+  | {
+      identifier: BaseUri;
+      element:
+        | DataTypeWithMetadata[]
+        | PropertyTypeWithMetadata[]
+        | EntityTypeWithMetadata[];
+      vertex: DataTypeVertex[] | PropertyTypeVertex[] | EntityTypeVertex[];
+    }
+  | {
+      identifier: EntityIdAndTimestamp | EntityVertexId | EntityRecordId;
+      element: Entity<TemporalSupport>;
+      vertex: EntityVertex<TemporalSupport>;
+    }
+  | {
+      identifier: EntityId | EntityValidInterval;
+      element: Entity<TemporalSupport>[];
+      vertex: EntityVertex<TemporalSupport>[];
+    };
 
+/**
+ * @todo - doc
+ */
+type RecursiveSelect<T, U, Reversed extends boolean = false> = T extends U
+  ? Reversed extends false
+    ? T
+    : U
+  : T extends { [key in keyof U]: unknown }
+  ? T extends { [key in keyof U]: RecursiveSelect<U[key], T[key], true> }
+    ? T
+    : never
+  : never;
+
+/**
+ * @todo - doc
+ */
 export type IdentifierForGraphElement<
   TemporalSupport extends boolean,
-  Element extends GraphElementIdentifiers<TemporalSupport>[number]["element"],
-> = Extract<
-  GraphElementIdentifiers<TemporalSupport>[number],
-  {
-    element: Element;
-  }
->["identifier"];
+  Element extends GraphElementIdentifiers<TemporalSupport>["element"],
+> =
+  // This extends keyof check is strange, and seems to be a limitation of typescript..
+  "identifier" extends keyof RecursiveSelect<
+    GraphElementIdentifiers<TemporalSupport>,
+    {
+      element: Element;
+    }
+  >
+    ? RecursiveSelect<
+        GraphElementIdentifiers<TemporalSupport>,
+        {
+          element: Element;
+        }
+      >["identifier"]
+    : never;
 
+/**
+ * @todo - doc
+ */
 export type GraphElementForIdentifier<
   TemporalSupport extends boolean,
-  Identifier extends GraphElementIdentifiers<TemporalSupport>[number]["identifier"],
-> = Extract<
-  GraphElementIdentifiers<TemporalSupport>[number],
-  {
-    identifier: Identifier;
-  }
->["element"];
+  Identifier extends GraphElementIdentifiers<TemporalSupport>["identifier"],
+> =
+  // This extends keyof check is strange, and seems to be a limitation of typescript..
+  "element" extends keyof RecursiveSelect<
+    GraphElementIdentifiers<TemporalSupport>,
+    {
+      identifier: Identifier;
+    }
+  >
+    ? RecursiveSelect<
+        GraphElementIdentifiers<TemporalSupport>,
+        {
+          identifier: Identifier;
+        }
+      >["element"]
+    : never;

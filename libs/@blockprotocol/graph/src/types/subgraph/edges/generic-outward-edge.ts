@@ -1,7 +1,4 @@
-import {
-  GraphElementIdentifiers,
-  IdentifierForGraphElement,
-} from "../../subgraph.js";
+import { GraphElementIdentifiers } from "../../subgraph.js";
 import {
   KnowledgeGraphEdgeKind,
   OntologyEdgeKind,
@@ -14,18 +11,12 @@ import {
  */
 export type GenericOutwardEdge<
   EdgeKind extends KnowledgeGraphEdgeKind | OntologyEdgeKind | SharedEdgeKind =
-      | KnowledgeGraphEdgeKind
+    | KnowledgeGraphEdgeKind
     | OntologyEdgeKind
     | SharedEdgeKind,
   Reversed extends boolean = boolean,
-  Endpoint extends IdentifierForGraphElement<
-    boolean,
-    GraphElementIdentifiers<boolean>["element"]
-    > = IdentifierForGraphElement<
-    boolean,
-    GraphElementIdentifiers<boolean>["element"]
-    >,
-  > = {
+  Endpoint extends GraphElementIdentifiers<boolean>["identifier"] = GraphElementIdentifiers<boolean>["identifier"],
+> = {
   kind: EdgeKind;
   reversed: Reversed;
   rightEndpoint: Endpoint;

@@ -55,7 +55,7 @@ type FilterEntitiesFn = {
 export const get = (
   obj: unknown,
   path: string | string[],
-  defaultValue = undefined,
+  defaultValue: unknown = undefined,
 ): unknown => {
   const travel = (regexp: RegExp) =>
     String.prototype.split

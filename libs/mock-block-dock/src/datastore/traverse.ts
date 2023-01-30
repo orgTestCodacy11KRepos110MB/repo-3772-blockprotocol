@@ -26,7 +26,7 @@ import {
   getRightEntityForLinkEntity,
 } from "@blockprotocol/graph/stdlib-temporal";
 
-import { typedEntries } from "../util";
+import { get, typedEntries } from "../util";
 
 const TIMESTAMP_PLACEHOLDER = `TIMESTAMP_PLACEHOLDER` as const;
 
@@ -34,10 +34,10 @@ const TIMESTAMP_PLACEHOLDER = `TIMESTAMP_PLACEHOLDER` as const;
  * Advanced type to recursively search a type for `EntityValidInterval` and patch those occurrences by removing the
  * definition of the "validInterval" property.
  */
-type PatchEntityOutwardEdges<ToPatch extends unknown> = ToPatch extends object
+type PatchEntityValidInterval<ToPatch extends unknown> = ToPatch extends object
   ? ToPatch extends EntityValidInterval
     ? Omit<ToPatch, "validInterval">
-    : { [key in keyof ToPatch]: PatchEntityOutwardEdges<ToPatch[key]> }
+    : { [key in keyof ToPatch]: PatchEntityValidInterval<ToPatch[key]> }
   : ToPatch;
 
 /**
@@ -49,18 +49,20 @@ export type TraversalSubgraph<TemporalSupport extends boolean> = Omit<
   Subgraph<TemporalSupport>,
   "edges"
 > & {
-  edges: OntologyRootedEdges & {
-    [entityId: EntityId]: Record<
-      typeof TIMESTAMP_PLACEHOLDER,
-      PatchEntityOutwardEdges<KnowledgeGraphOutwardEdge[]>
-    >;
-  };
+  edges: PatchEntityValidInterval<
+    OntologyRootedEdges & {
+      [entityId: EntityId]: Record<
+        typeof TIMESTAMP_PLACEHOLDER,
+        KnowledgeGraphOutwardEdge[]
+      >;
+    }
+  >;
 };
 
-type PatchedOutgoingLinkEdge = PatchEntityOutwardEdges<OutgoingLinkEdge>;
-type PatchedIncomingLinkEdge = PatchEntityOutwardEdges<IncomingLinkEdge>;
-type PatchedHasLeftEntityEdge = PatchEntityOutwardEdges<HasLeftEntityEdge>;
-type PatchedHasRightEntityEdge = PatchEntityOutwardEdges<HasRightEntityEdge>;
+type PatchedOutgoingLinkEdge = PatchEntityValidInterval<OutgoingLinkEdge>;
+type PatchedIncomingLinkEdge = PatchEntityValidInterval<IncomingLinkEdge>;
+type PatchedHasLeftEntityEdge = PatchEntityValidInterval<HasLeftEntityEdge>;
+type PatchedHasRightEntityEdge = PatchEntityValidInterval<HasRightEntityEdge>;
 
 /**
  * @todo - doc
@@ -71,7 +73,7 @@ type PatchedHasRightEntityEdge = PatchEntityOutwardEdges<HasRightEntityEdge>;
 const patchedAddKnowledgeGraphEdge = <TemporalSupport extends boolean>(
   traversalSubgraph: TraversalSubgraph<TemporalSupport>,
   sourceEntityId: EntityId,
-  outwardEdge: PatchEntityOutwardEdges<KnowledgeGraphOutwardEdge>,
+  outwardEdge: PatchEntityValidInterval<KnowledgeGraphOutwardEdge>,
 ) =>
   addKnowledgeGraphEdgeToSubgraphByMutation(
     // intermediary `as unknown` cast is needed because otherwise tsc gets confused and complains about type
@@ -367,4 +369,125 @@ export const traverseElement = <TemporalSupport extends boolean>(
       currentTraversalDepths,
     });
   }
+};
+
+export const finalizeSubgraph = <TemporalSupport extends boolean>(
+  traversalSubgraph: TraversalSubgraph<TemporalSupport>,
+): Subgraph<TemporalSupport> => {
+  const finalizedSubgraph = {
+    ...traversalSubgraph,
+    edges: {},
+  };
+
+  if (traversalSubgraph.temporalAxes !== undefined) {
+    const variableAxis = traversalSubgraph.temporalAxes.resolved.variable.axis;
+
+    const validRanges = Object.fromEntries(
+      Object.entries(traversalSubgraph.vertices).map(
+        ([baseId, revisionMap]) => {
+          const sortedRevisions = Object.keys(revisionMap).sort();
+
+          /** @todo - This cast is needed because TS is confused again and thinks these must always be entity vertices */
+          const latestVertex = revisionMap[
+            mustBeDefined(sortedRevisions[-1])
+          ]! as Vertex<TemporalSupport>;
+
+          let latest;
+
+          if (isEntityVertex(latestVertex)) {
+            const endBound =
+              latestVertex.inner.metadata.temporalVersioning[variableAxis].end;
+            latest = endBound.kind === "unbounded" ? null : endBound.limit;
+          } else {
+            latest = latestVertex.inner.metadata.recordId.version;
+          }
+
+          return [
+            baseId,
+            { earliest: mustBeDefined(sortedRevisions[0]), latest },
+          ];
+        },
+      ),
+    );
+
+    for (const [baseId, outwardEdgeMap] of typedEntries(
+      traversalSubgraph.edges,
+    )) {
+      for (const [traversalEdgeFirstCreatedAt, outwardEdges] of typedEntries(
+        outwardEdgeMap,
+      )) {
+        for (const outwardEdge of outwardEdges) {
+          let finalizedOutwardEdge: OutwardEdge;
+          let edgeFirstCreatedAt;
+
+          switch (outwardEdge.kind) {
+            case "HAS_LEFT_ENTITY":
+            case "HAS_RIGHT_ENTITY": {
+              let linkEntityValidRange;
+              let endLimit;
+
+              if (outwardEdge.reversed) {
+                // incoming or outgoing link, we want the timestamps of the interval to refer to the earliest revision
+                // of the link entity (right endpoint) in the subgraph, and the end bound of the latest revision
+                linkEntityValidRange = mustBeDefined(
+                  validRanges[outwardEdge.rightEndpoint.entityId],
+                );
+                edgeFirstCreatedAt = linkEntityValidRange.earliest;
+                endLimit = linkEntityValidRange.latest;
+              } else {
+                // `baseId` here refers to a link entity, we want the timestamp to be the earliest revision of it in
+                // the subgraph
+                linkEntityValidRange = mustBeDefined(validRanges[baseId]);
+                edgeFirstCreatedAt = linkEntityValidRange.earliest;
+                endLimit = linkEntityValidRange.latest;
+              }
+
+              finalizedOutwardEdge = {
+                ...outwardEdge,
+                rightEndpoint: {
+                  ...outwardEdge.rightEndpoint,
+                  validInterval: {
+                    start: { kind: "inclusive", limit: edgeFirstCreatedAt },
+                    end: endLimit
+                      ? { kind: "exclusive", limit: endLimit as string }
+                      : { kind: "unbounded" },
+                  },
+                },
+              };
+              break;
+            }
+            case "IS_OF_TYPE": {
+              if (outwardEdge.reversed) {
+                throw new Error(
+                  `Reversed "IS_OF_TYPE" edge kinds are not currently supported in graph traversal`,
+                );
+              }
+
+              edgeFirstCreatedAt = traversalEdgeFirstCreatedAt;
+              finalizedOutwardEdge = outwardEdge;
+              break;
+            }
+            default: {
+              edgeFirstCreatedAt = traversalEdgeFirstCreatedAt;
+              finalizedOutwardEdge = outwardEdge;
+            }
+          }
+
+          const finalizedEdgeMap = get(finalizedSubgraph.edges, baseId, {});
+          const finalizedOutwardEdges = get(
+            finalizedEdgeMap,
+            edgeFirstCreatedAt,
+            [],
+          );
+
+          (finalizedOutwardEdges as OutwardEdge[]).push(finalizedOutwardEdge);
+        }
+      }
+    }
+  } else {
+    /** @todo - implement this */
+    throw new Error(`Non-versioned traversal is currently unsupported`);
+  }
+
+  return finalizedSubgraph;
 };

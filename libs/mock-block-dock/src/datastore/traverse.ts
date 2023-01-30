@@ -13,6 +13,7 @@ import {
   OutgoingLinkEdge,
   OutwardEdge,
   Subgraph,
+  SubgraphRootType,
   Vertex,
 } from "@blockprotocol/graph";
 import { mustBeDefined } from "@blockprotocol/graph/dist/stdlib/must-be-defined";
@@ -45,10 +46,10 @@ type PatchEntityValidInterval<ToPatch extends unknown> = ToPatch extends object
  * to avoid many intermediary rewrites, the timestamps of the edges are filled in as a post-processing step and are left
  * unspecified until then.
  */
-export type TraversalSubgraph<TemporalSupport extends boolean> = Omit<
-  Subgraph<TemporalSupport>,
-  "edges"
-> & {
+export type TraversalSubgraph<
+  TemporalSupport extends boolean,
+  RootType extends SubgraphRootType<TemporalSupport> = SubgraphRootType<TemporalSupport>,
+> = Omit<Subgraph<TemporalSupport, RootType>, "edges"> & {
   edges: PatchEntityValidInterval<
     OntologyRootedEdges & {
       [entityId: EntityId]: Record<
@@ -351,14 +352,21 @@ export const traverseElementTemporal = ({
 /** @todo - Update this to take an interval instead of always being "latest" */
 /** @todo - Update this to handle ontology edges */
 /** @todo - Update this to use temporal versioning information */
-export const traverseElement = <TemporalSupport extends boolean>(
-  traversalSubgraph: TraversalSubgraph<TemporalSupport>,
-  element: Vertex<TemporalSupport>,
-  elementIdentifier: GraphElementVertexId,
-  datastore: Subgraph<true>,
-  currentTraversalDepths: GraphResolveDepths,
-  interval: TemporalSupport extends true ? NonNullTimeInterval : undefined,
-) => {
+export const traverseElement = <TemporalSupport extends boolean>({
+  traversalSubgraph,
+  datastore,
+  element,
+  elementIdentifier,
+  currentTraversalDepths,
+  interval,
+}: {
+  traversalSubgraph: TraversalSubgraph<TemporalSupport>;
+  datastore: Subgraph<true>;
+  element: Vertex<TemporalSupport>;
+  elementIdentifier: GraphElementVertexId;
+  currentTraversalDepths: GraphResolveDepths;
+  interval: TemporalSupport extends true ? NonNullTimeInterval : undefined;
+}) => {
   if (traversalSubgraph.temporalAxes !== undefined) {
     return traverseElementTemporal({
       traversalSubgraph: traversalSubgraph as TraversalSubgraph<true>,
@@ -371,9 +379,12 @@ export const traverseElement = <TemporalSupport extends boolean>(
   }
 };
 
-export const finalizeSubgraph = <TemporalSupport extends boolean>(
-  traversalSubgraph: TraversalSubgraph<TemporalSupport>,
-): Subgraph<TemporalSupport> => {
+export const finalizeSubgraph = <
+  TemporalSupport extends boolean,
+  RootType extends SubgraphRootType<TemporalSupport> = SubgraphRootType<TemporalSupport>,
+>(
+  traversalSubgraph: TraversalSubgraph<TemporalSupport, RootType>,
+): Subgraph<TemporalSupport, RootType> => {
   const finalizedSubgraph = {
     ...traversalSubgraph,
     edges: {},

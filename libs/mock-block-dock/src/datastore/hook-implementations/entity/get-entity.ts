@@ -2,13 +2,17 @@ import {
   EntityRootedSubgraph,
   GetEntityData,
   Subgraph,
+  SubgraphRootTypes,
 } from "@blockprotocol/graph";
-import { getEntity as getEntityFromSubgraph } from "@blockprotocol/graph/stdlib-temporal";
+import { getEntityRevision as getEntityFromSubgraph } from "@blockprotocol/graph/stdlib-temporal";
 
 import { getDefaultTemporalAxes } from "../../get-default-temporal-axes";
 import { resolveTemporalAxes } from "../../resolve-temporal-axes";
-import { traverseElement } from "../../traverse";
-import { TraversalContext } from "../../traverse/traversal-context";
+import {
+  finalizeSubgraph,
+  TraversalSubgraph,
+  traverseElement,
+} from "../../traverse";
 
 export const getEntityImpl = (
   {
@@ -29,7 +33,10 @@ export const getEntityImpl = (
     return undefined;
   }
 
-  const subgraph: EntityRootedSubgraph<true> = {
+  const traversalSubgraph: TraversalSubgraph<
+    true,
+    SubgraphRootTypes<true>["entity"]
+  > = {
     roots: [
       {
         baseId: entityRevision.metadata.recordId.entityId,
@@ -45,21 +52,22 @@ export const getEntityImpl = (
     temporalAxes: { initial: temporalAxes, resolved: resolvedTemporalAxes },
   };
 
-  traverseElement(
-    subgraph,
-    {
+  traverseElement({
+    traversalSubgraph,
+    datastore: graph,
+    element: { kind: "entity", inner: entityRevision },
+    elementIdentifier: {
       baseId: entityRevision.metadata.recordId.entityId,
       revisionId:
         entityRevision.metadata.temporalVersioning[
           resolvedTemporalAxes.variable.axis
         ].start.limit,
     },
-    graph,
-    new TraversalContext(graph),
-    graphResolveDepths,
-  );
+    currentTraversalDepths: graphResolveDepths,
+    interval: resolvedTemporalAxes.variable.interval,
+  });
 
-  return subgraph;
+  return finalizeSubgraph(traversalSubgraph);
 };
 
 export const getEntity = <TemporalSupport extends boolean>(

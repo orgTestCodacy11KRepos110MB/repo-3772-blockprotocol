@@ -1,8 +1,6 @@
 import {
-  Edges,
   EntityId,
   EntityValidInterval,
-  GraphElementForIdentifier,
   GraphElementVertexId,
   GraphResolveDepths,
   HasLeftEntityEdge,
@@ -84,31 +82,6 @@ const patchedAddKnowledgeGraphEdge = <TemporalSupport extends boolean>(
     outwardEdge as KnowledgeGraphOutwardEdge,
   );
 
-/**
- * @todo - doc
- */
-type NestedExtract<T, U> = Extract<
-  T,
-  T extends { [key in keyof U]: unknown }
-    ? {
-        [sharedKey in keyof U]: NestedExtract<T[sharedKey], U[sharedKey]>;
-      }
-    : T extends U
-    ? T
-    : never
->;
-
-type GetNeighborsReturn<
-  EdgeKind extends OutwardEdge["kind"],
-  Reversed extends boolean,
-> = GraphElementForIdentifier<
-  true,
-  NestedExtract<
-    OutwardEdge,
-    { kind: EdgeKind; reversed: Reversed }
-  >["rightEndpoint"]
->[];
-
 export const getNeighbors = <
   EdgeKind extends OutwardEdge["kind"],
   Reversed extends boolean,
@@ -119,7 +92,7 @@ export const getNeighbors = <
   edgeKind: EdgeKind,
   reversed: Reversed,
   interval: NonNullTimeInterval,
-): GetNeighborsReturn<EdgeKind, Reversed> => {
+): Vertex<true>[] => {
   switch (edgeKind) {
     case "HAS_LEFT_ENTITY": {
       if (!isEntityVertex(source)) {
@@ -155,10 +128,12 @@ export const getNeighbors = <
           );
         }
 
-        return Object.values(mappedRevisions) as GetNeighborsReturn<
-          "HAS_LEFT_ENTITY",
-          true
-        > as GetNeighborsReturn<EdgeKind, Reversed>;
+        return Object.values(mappedRevisions)
+          .flat()
+          .map((entity) => ({
+            kind: "entity",
+            inner: entity,
+          }));
       } else if (
         sourceEntity.linkData?.leftEntityId !== undefined &&
         sourceEntity.linkData?.rightEntityId !== undefined
@@ -188,10 +163,10 @@ export const getNeighbors = <
           hasLeftEntityEdge,
         );
 
-        return [leftEntityRevisions] as GetNeighborsReturn<
-          "HAS_LEFT_ENTITY",
-          false
-        > as GetNeighborsReturn<EdgeKind, Reversed>;
+        return leftEntityRevisions.map((entity) => ({
+          kind: "entity",
+          inner: entity,
+        }));
       }
 
       return [];
@@ -230,10 +205,12 @@ export const getNeighbors = <
           );
         }
 
-        return Object.values(mappedRevisions) as GetNeighborsReturn<
-          "HAS_RIGHT_ENTITY",
-          true
-        > as GetNeighborsReturn<EdgeKind, Reversed>;
+        return Object.values(mappedRevisions)
+          .flat()
+          .map((entity) => ({
+            kind: "entity",
+            inner: entity,
+          }));
       } else if (
         sourceEntity.linkData?.leftEntityId !== undefined &&
         sourceEntity.linkData?.rightEntityId !== undefined
@@ -263,10 +240,10 @@ export const getNeighbors = <
           hasRightEntityEdge,
         );
 
-        return [rightEntityRevisions] as GetNeighborsReturn<
-          "HAS_RIGHT_ENTITY",
-          false
-        > as GetNeighborsReturn<EdgeKind, Reversed>;
+        return rightEntityRevisions.map((entity) => ({
+          kind: "entity",
+          inner: entity,
+        }));
       }
 
       return [];
@@ -312,25 +289,39 @@ export const traverseElementTemporal = ({
       if (depth < 1) {
         continue;
       }
-      for (const neighbor of getNeighbors(
+
+      for (const neighborVertex of getNeighbors(
+        traversalSubgraph,
         datastore,
         element,
-        edgeKind,
+        /** @todo - this will be unergonomic as soon as there are more supported edge kinds */
+        edgeKind === "hasLeftEntity" ? "HAS_LEFT_ENTITY" : "HAS_RIGHT_ENTITY",
         direction === "incoming",
         interval,
       )) {
-        let newIntersection;
+        let newIntersection: NonNullTimeInterval | null;
+        let neighborVertexId: GraphElementVertexId;
 
         if (isEntityVertex(neighborVertex)) {
           // get from temporal data of the neighbor vertex
-          newIntersection = intervalIntersectionWithInterval(
-            interval,
+          const entityValidInterval =
             neighborVertex.inner.metadata.temporalVersioning[
               traversalSubgraph.temporalAxes.resolved.pinned.axis
-            ],
+            ];
+          newIntersection = intervalIntersectionWithInterval(
+            interval,
+            entityValidInterval,
           );
+          neighborVertexId = {
+            baseId: neighborVertex.inner.metadata.recordId.entityId,
+            revisionId: entityValidInterval.start.limit,
+          };
         } else {
           newIntersection = interval;
+          neighborVertexId = {
+            baseId: neighborVertex.inner.metadata.recordId.baseUri,
+            revisionId: neighborVertex.inner.metadata.recordId.version,
+          };
         }
 
         if (newIntersection) {

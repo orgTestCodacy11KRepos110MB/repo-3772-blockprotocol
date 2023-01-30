@@ -1,9 +1,10 @@
+import { SubgraphRootTypes } from "@blockprotocol/graph";
 import {
   getEntities,
-  getEntity,
+  getEntityRevision,
   getEntityTypes,
   getRoots,
-} from "@blockprotocol/graph/stdlib";
+} from "@blockprotocol/graph/stdlib-temporal";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 import {
   Box,
@@ -31,7 +32,11 @@ export const EntitySwitcher = () => {
     useMockBlockDockContext();
 
   const blockEntity = useMemo(
-    () => getRoots(blockEntitySubgraph)[0]!,
+    /** @todo - why do we have to specify the generics here, how did `getRoots` break */
+    () =>
+      getRoots<true, SubgraphRootTypes<true>["entity"]>(
+        blockEntitySubgraph,
+      )[0]!,
     [blockEntitySubgraph],
   );
 
@@ -43,7 +48,7 @@ export const EntitySwitcher = () => {
   >(blockEntity.metadata.recordId.entityId);
 
   const selectedEntity = useMemo(
-    () => (entityId ? getEntity(graph, entityId)! : blockEntity),
+    () => (entityId ? getEntityRevision(graph, entityId)! : blockEntity),
     [graph, blockEntity, entityId],
   );
 

@@ -1,5 +1,16 @@
 # mock-block-dock
 
+## 0.0.40
+
+### Patch Changes
+
+- [#922](https://github.com/blockprotocol/blockprotocol/pull/922) [`81f32f26`](https://github.com/blockprotocol/blockprotocol/commit/81f32f269153ee6e8464ab831827d8e6a42b43a0) Thanks [@nathggns](https://github.com/nathggns)! - Allow creating services before element is available
+
+- Updated dependencies [[`81f32f26`](https://github.com/blockprotocol/blockprotocol/commit/81f32f269153ee6e8464ab831827d8e6a42b43a0)]:
+  - @blockprotocol/graph@0.0.20
+  - @blockprotocol/core@0.0.14
+  - @blockprotocol/hook@0.0.10
+
 ## 0.0.39
 
 ### Patch Changes

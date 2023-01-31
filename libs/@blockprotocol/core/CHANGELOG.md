@@ -1,5 +1,11 @@
 # @blockprotocol/core
 
+## 0.0.14
+
+### Patch Changes
+
+- [#922](https://github.com/blockprotocol/blockprotocol/pull/922) [`81f32f26`](https://github.com/blockprotocol/blockprotocol/commit/81f32f269153ee6e8464ab831827d8e6a42b43a0) Thanks [@nathggns](https://github.com/nathggns)! - Allow creating services before element is available
+
 ## 0.0.13
 
 ### Patch Changes

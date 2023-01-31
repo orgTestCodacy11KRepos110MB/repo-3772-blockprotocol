@@ -1,3 +1,4 @@
+import { Entity } from "@blockprotocol/graph";
 import { extractBaseUri } from "@blockprotocol/type-system/slim";
 import { ChangeEvent, FunctionComponent, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -15,45 +16,125 @@ const blockEntityMap = {
   react: {
     metadata: {
       recordId: {
-        baseId: "entity-react",
-        versionId: new Date().toISOString(),
+        entityId: "entity-react",
+        editionId: new Date(0).toISOString(),
       },
       entityTypeId: entityTypes.testType.$id,
+      temporalVersioning: {
+        transactionTime: {
+          start: {
+            kind: "inclusive",
+            limit: new Date(0).toISOString(),
+          },
+          end: {
+            kind: "unbounded",
+          },
+        },
+        decisionTime: {
+          start: {
+            kind: "inclusive",
+            limit: new Date(0).toISOString(),
+          },
+          end: {
+            kind: "unbounded",
+          },
+        },
+      },
     },
     properties: { [extractBaseUri(propertyTypes.name.$id)]: "World" },
   },
   "custom-element": {
     metadata: {
       recordId: {
-        baseId: "entity-custom-element",
-        versionId: new Date().toISOString(),
+        entityId: "entity-custom-element",
+        editionId: new Date(0).toISOString(),
       },
       entityTypeId: entityTypes.testType.$id,
+      temporalVersioning: {
+        transactionTime: {
+          start: {
+            kind: "inclusive",
+            limit: new Date(0).toISOString(),
+          },
+          end: {
+            kind: "unbounded",
+          },
+        },
+        decisionTime: {
+          start: {
+            kind: "inclusive",
+            limit: new Date(0).toISOString(),
+          },
+          end: {
+            kind: "unbounded",
+          },
+        },
+      },
     },
     properties: { [extractBaseUri(propertyTypes.name.$id)]: "World" },
   },
   "html-at-url": {
     metadata: {
       recordId: {
-        baseId: "entity-html-as-url",
-        versionId: new Date().toISOString(),
+        entityId: "entity-html-as-url",
+        editionId: new Date(0).toISOString(),
       },
       entityTypeId: entityTypes.testType.$id,
+      temporalVersioning: {
+        transactionTime: {
+          start: {
+            kind: "inclusive",
+            limit: new Date(0).toISOString(),
+          },
+          end: {
+            kind: "unbounded",
+          },
+        },
+        decisionTime: {
+          start: {
+            kind: "inclusive",
+            limit: new Date(0).toISOString(),
+          },
+          end: {
+            kind: "unbounded",
+          },
+        },
+      },
     },
     properties: { [extractBaseUri(propertyTypes.name.$id)]: "World" },
   },
   "html-as-string": {
     metadata: {
       recordId: {
-        baseId: "entity-html-as-string",
-        versionId: new Date().toISOString(),
+        entityId: "entity-html-as-string",
+        editionId: new Date(0).toISOString(),
       },
       entityTypeId: entityTypes.testType.$id,
+      temporalVersioning: {
+        transactionTime: {
+          start: {
+            kind: "inclusive",
+            limit: new Date(0).toISOString(),
+          },
+          end: {
+            kind: "unbounded",
+          },
+        },
+        decisionTime: {
+          start: {
+            kind: "inclusive",
+            limit: new Date(0).toISOString(),
+          },
+          end: {
+            kind: "unbounded",
+          },
+        },
+      },
     },
     properties: { [extractBaseUri(propertyTypes.name.$id)]: "World" },
   },
 } as const;
-// } as const satisfies Record<string, Entity>;
+// } as const satisfies Record<string, Entity<true>>;
 
 type TestBlockType = keyof typeof blockEntityMap;
 

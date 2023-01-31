@@ -399,7 +399,7 @@ export const finalizeSubgraph = <
 
           /** @todo - This cast is needed because TS is confused again and thinks these must always be entity vertices */
           const latestVertex = revisionMap[
-            mustBeDefined(sortedRevisions[-1])
+            mustBeDefined(sortedRevisions.at(-1))
           ]! as Vertex<TemporalSupport>;
 
           let latest;

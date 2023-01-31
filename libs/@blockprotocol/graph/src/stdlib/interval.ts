@@ -232,7 +232,7 @@ export const unionOfIntervals = <IntervalsType extends NonNullTimeInterval>(
       // last) then those would have been merged into one in the previous iteration (again because they are sorted).
       return [
         ...union.slice(0, -1),
-        ...intervalUnionWithInterval(union[-1]!, currentInterval),
+        ...intervalUnionWithInterval(union.at(-1)!, currentInterval),
       ];
     }
   }, [] as UnionReturn<IntervalsType, IntervalsType>[number][]);

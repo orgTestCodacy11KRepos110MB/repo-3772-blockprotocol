@@ -1,6 +1,11 @@
 import { EntityId, isEntityRecordId } from "../../entity.js";
 import { isOntologyTypeRecordId } from "../../ontology.js";
-import { Timestamp } from "../../temporal-versioning.js";
+import {
+  LimitedTemporalBound,
+  TemporalBound,
+  TimeInterval,
+  Timestamp,
+} from "../../temporal-versioning.js";
 import {
   isKnowledgeGraphEdgeKind,
   isOntologyEdgeKind,
@@ -12,6 +17,11 @@ import { OntologyOutwardEdge } from "./variants/ontology";
 export type EntityIdAndTimestamp = {
   baseId: EntityId;
   timestamp: Timestamp;
+};
+
+export type EntityValidInterval = {
+  entityId: EntityId;
+  validInterval: TimeInterval<LimitedTemporalBound, TemporalBound>;
 };
 
 export type OutwardEdge = OntologyOutwardEdge | KnowledgeGraphOutwardEdge;
